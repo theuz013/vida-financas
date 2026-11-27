@@ -55,7 +55,8 @@ Organizador manual próprio com o conjunto de recursos do PingDin (contas, cart�
 ## Evidence on Hand
 
 - Especificação do dono (este repositório a reflete).
-- Referências visuais (prints do PingDin e da interface do assistente): o dono vai enviar. Até lá, nenhuma tela é desenhada em cima de suposição do visual do PingDin.
+- Prints do onboarding do PingDin (11 telas, novembro de 2026): base de estrutura e hierarquia, registrada em DESIGN.md.
+- Prints da interface do assistente: ainda não enviados.
 
 ## Product Principles
 

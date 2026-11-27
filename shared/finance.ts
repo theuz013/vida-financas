@@ -279,6 +279,8 @@ export interface CanBuyOption {
   /** Quanto sai antes do próximo salário por causa desta compra. */
   impactBeforePayday: number;
   perDayAfter: number;
+  /** Quanto sobra até o salário depois da compra (negativo = falta). */
+  freeAfter: number;
   installmentAmount: number;
 }
 
@@ -328,6 +330,7 @@ export function canBuy(input: {
         reason,
         impactBeforePayday: amount,
         perDayAfter,
+        freeAfter,
         installmentAmount: amount,
       });
     }
@@ -366,6 +369,7 @@ export function canBuy(input: {
         reason,
         impactBeforePayday: impact,
         perDayAfter,
+        freeAfter,
         installmentAmount: parcels[0],
       });
     }

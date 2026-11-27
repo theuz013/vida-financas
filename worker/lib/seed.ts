@@ -85,13 +85,13 @@ export async function seedDemo(db: DB, userId: string, timezone: string) {
   const bank = id();
   const card = id();
   await db.insert(schema.accounts).values([
-    { id: bank, userId, name: "Banco Exemplo", kind: "checking", openingBalance: 320_000 },
+    { id: bank, userId, name: "Banco Exemplo", kind: "checking", openingBalance: 61_540 },
     { id: card, userId, name: "Cartão Exemplo", kind: "card", creditLimit: 400_000, closingDay: 3, dueDay: 10 },
   ]);
   if (wallet) {
     await db.update(schema.accounts).set({ openingBalance: 15_000 }).where(eq(schema.accounts.id, wallet.id));
   }
-  await db.update(schema.settings).set({ nextPayday: d(12), expectedIncome: 650_000 }).where(eq(schema.settings.userId, userId));
+  await db.update(schema.settings).set({ nextPayday: d(12), expectedIncome: 420_000 }).where(eq(schema.settings.userId, userId));
 
   const tx = (p: Partial<typeof schema.transactions.$inferInsert>) => ({
     id: id(),
@@ -104,7 +104,7 @@ export async function seedDemo(db: DB, userId: string, timezone: string) {
     ...p,
   });
   await db.insert(schema.transactions).values([
-    tx({ type: "income", amount: 650_000, description: "Salário", categoryId: cat("Salário"), date: d(-18) }),
+    tx({ type: "income", amount: 420_000, description: "Salário", categoryId: cat("Salário"), date: d(-18) }),
     tx({ amount: 42_380, description: "Supermercado", categoryId: cat("Mercado"), date: d(-6) }),
     tx({ amount: 25_000, description: "Gasolina", categoryId: cat("Combustível"), date: d(-3), accountId: card }),
     tx({ amount: 180_000, description: "Geladeira", categoryId: cat("Casa"), date: d(-10), accountId: card, installmentsTotal: 6 }),

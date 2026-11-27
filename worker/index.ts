@@ -47,6 +47,12 @@ app.post("/demo", async (c) => {
   return res;
 });
 
+/** Sessão atual (sem erro quando não há login: o app só decide para onde ir). */
+app.get("/me", async (c) => {
+  const session = await createAuth(c.env).api.getSession({ headers: c.req.raw.headers });
+  return c.json({ user: session?.user ?? null });
+});
+
 /* ---------- API do assistente (chave) ---------- */
 app.route("/v1", integration);
 
@@ -61,10 +67,6 @@ authed.use("*", async (c, next) => {
   c.set("userId", session.user.id);
   c.set("tz", settings?.timezone || c.env.APP_TIMEZONE || "America/Sao_Paulo");
   await next();
-});
-authed.get("/me", async (c) => {
-  const session = await createAuth(c.env).api.getSession({ headers: c.req.raw.headers });
-  return c.json({ user: session?.user });
 });
 authed.route("/", finance);
 authed.route("/", life);

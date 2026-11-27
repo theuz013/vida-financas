@@ -53,6 +53,18 @@ Teste de ponta a ponta da API (com `npm run dev` rodando e banco local novo):
 node scripts/smoke.mjs
 ```
 
+Teste dos fluxos pela interface, no tamanho de um iPhone (Playwright):
+
+```bash
+node scripts/ui-flow.cjs
+```
+
+Para regerar os ícones a partir de `public/icon.svg`:
+
+```bash
+node scripts/icons.mjs
+```
+
 ## Publicar na Cloudflare (gratuito)
 
 1. Entre na sua conta:
@@ -140,4 +152,8 @@ As respostas de erro vêm em JSON com `error` em português, para o assistente r
 
 ## Lojas (fase 2)
 
-O app já tem o que a revisão pede: exclusão de conta, exportação dos dados, política de privacidade e modo demonstração (`DEMO_ENABLED`) com dados de exemplo, apagados depois de 24h. O empacotamento com Capacitor e o push nativo (FCM/APNs, em `worker/lib/push.ts`) ficam para a fase 2.
+O app já tem o que a revisão pede: exclusão de conta e exportação dos dados (Ajustes), política de privacidade (`/privacidade`) e modo demonstração (`DEMO_ENABLED`, botão "Ver com dados de exemplo" na tela de entrada) com dados de exemplo, apagados depois de 24h. O empacotamento com Capacitor e o push nativo (FCM/APNs, em `worker/lib/push.ts`) ficam para a fase 2.
+
+## Instalar no iPhone
+
+Abra o endereço publicado no Safari → Compartilhar → **Adicionar à Tela de Início**. Abra pelo ícone e ative as notificações em **Ajustes → Notificações** (no iPhone, push só funciona com o app instalado assim, iOS 16.4 ou mais novo).
