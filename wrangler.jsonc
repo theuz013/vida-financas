@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vida-financas",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vida-financas-db",
+      // Troque pelo id real depois de `wrangler d1 create vida-financas-db`
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // A cada 15 min: resumo do dia às 08h (fuso do usuário) e lembretes de compromissos
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": {
+    "APP_TIMEZONE": "America/Sao_Paulo",
+    // "true" libera cadastro público (lojas). Fechado no MVP: só o primeiro usuário se cadastra.
+    "ALLOW_SIGNUP": "false",
+    // "true" libera o botão "Entrar no modo demonstração" (revisão da Apple/Google)
+    "DEMO_ENABLED": "true",
+    "VAPID_SUBJECT": "mailto:contato@example.com"
+  },
+  "observability": { "enabled": true }
+}

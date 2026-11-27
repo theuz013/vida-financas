@@ -1,0 +1,7 @@
+# Copie para .dev.vars (dev local). Em produção: `wrangler secret put <NOME>`.
+# Gere com: openssl rand -base64 32
+BETTER_AUTH_SECRET=
+BETTER_AUTH_URL=http://localhost:5173
+# Push (gere com: node scripts/vapid.mjs)
+VAPID_PUBLIC_KEY=
+VAPID_PRIVATE_KEY=
