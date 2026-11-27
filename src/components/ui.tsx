@@ -216,7 +216,16 @@ export function Select({ className, children, ...rest }: SelectHTMLAttributes<HT
   );
 }
 
-/** Campo de dinheiro: teclado numérico, aceita "67,54". */
+/** Máscara de moeda: só dígitos entram; o último dígito são centavos (1000 → 10,00 → 1.000,00). */
+export function maskBRL(raw: string): string {
+  const digits = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 12);
+  if (!digits) return "";
+  const cents = digits.padStart(3, "0");
+  const int = cents.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${int},${cents.slice(-2)}`;
+}
+
+/** Campo de dinheiro com máscara R$ 1.000,00 (teclado numérico). */
 export function MoneyInput({ value, onChange, autoFocus, large, ...rest }: { value: string; onChange: (v: string) => void; autoFocus?: boolean; large?: boolean } & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
   return (
     <div className={cx("flex items-center gap-2 rounded-xl border border-line bg-surface px-3.5 focus-within:border-ink-2", large ? "h-16" : "h-12")}>
@@ -228,7 +237,7 @@ export function MoneyInput({ value, onChange, autoFocus, large, ...rest }: { val
         placeholder="0,00"
         autoFocus={autoFocus}
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, ""))}
+        onChange={(e) => onChange(maskBRL(e.target.value))}
         className={cx("num min-w-0 flex-1 bg-transparent outline-none", large ? "text-[30px] font-bold tracking-[-0.02em]" : "text-[16px]")}
       />
     </div>

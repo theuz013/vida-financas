@@ -24,7 +24,7 @@ const SHOTS = process.env.SHOTS;
   ok("dono cria a casa e vê as contas", await seen(dono.getByText("Contas da casa neste mês")));
   // conta da casa pelo +
   await dono.getByRole("button", { name: "Nova conta da casa" }).click();
-  await dono.getByLabel("Nome").fill("Condomínio"); await dono.getByLabel("Valor").fill("450");
+  await dono.getByLabel("Nome").fill("Condomínio"); await dono.getByLabel("Valor").fill("45000");
   await dono.getByRole("button", { name: "Salvar" }).click(); await dono.waitForTimeout(700);
   ok("conta da casa criada", await seen(dono.getByText("Condomínio")));
   // convite

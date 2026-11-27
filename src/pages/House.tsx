@@ -63,13 +63,13 @@ export function HouseLayout() {
   return (
     <div>
       <PageHeader title={data.household.name} subtitle={`${ctx.members.length} ${ctx.members.length === 1 ? "pessoa" : "pessoas"} · você é ${data.me.role === "admin" ? "administrador" : "membro"}`} />
-      <nav className="-mx-4 mb-5 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0" aria-label="Seções da casa">
+      <nav className="sticky top-[env(safe-area-inset-top)] z-10 -mx-4 mb-5 flex snap-x gap-1.5 overflow-x-auto overscroll-x-contain bg-bg px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:static md:mx-0 md:px-0" aria-label="Seções da casa">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
             to={t.to}
             className={({ isActive }) =>
-              cx("hit h-10 shrink-0 rounded-full px-4 text-[14px] leading-10 font-semibold transition-colors", isActive ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink active:text-ink")
+              cx("hit h-10 shrink-0 snap-start rounded-full px-4 text-[14px] leading-10 font-semibold transition-colors", isActive ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink active:text-ink")
             }
           >
             {t.label}

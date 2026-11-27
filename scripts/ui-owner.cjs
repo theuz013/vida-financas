@@ -16,13 +16,13 @@ const { chromium, devices } = require("playwright");
   // saldo da carteira e cartão
   await p.goto("http://localhost:5173/financas"); await p.waitForLoadState("networkidle");
   await p.getByRole("button", { name: "Novo cartão" }).click();
-  await p.getByLabel("Nome").fill("Nubank"); await p.getByLabel("Limite total").fill("5000");
+  await p.getByLabel("Nome").fill("Nubank"); await p.getByLabel("Limite total").fill("500000");
   await p.getByLabel("Dia do fechamento").fill("3"); await p.getByLabel("Dia do vencimento").fill("10");
   await p.getByRole("button", { name: "Salvar" }).click(); await p.waitForTimeout(700);
   ok("cartão cadastrado", await p.getByText("Nubank").first().isVisible());
   // compra já parcelada (parcela 3 de 10)
   await p.getByRole("button", { name: "Registrar" }).last().click();
-  await p.getByLabel("Valor").fill("1000");
+  await p.getByLabel("Valor").fill("100000");
   await p.getByLabel("Pago com").selectOption({ label: "Nubank (crédito)" });
   await p.getByLabel("Parcelas").selectOption("10");
   await p.getByLabel("Parcela atual").selectOption("3");
@@ -33,7 +33,7 @@ const { chromium, devices } = require("playwright");
   ok("compra antiga só lança as 8 parcelas que faltam (R$ 800 usados)", avail.includes("4.200,00"));
   // desfazer gasto
   await p.getByRole("button", { name: "Registrar" }).last().click();
-  await p.getByLabel("Valor").fill("33"); await p.getByLabel("Descrição").fill("Teste desfazer");
+  await p.getByLabel("Valor").fill("3300"); await p.getByLabel("Descrição").fill("Teste desfazer");
   await p.getByRole("button", { name: "Registrar gasto" }).click(); await p.waitForTimeout(500);
   await p.getByRole("button", { name: "Desfazer" }).click(); await p.waitForTimeout(800);
   await p.goto("http://localhost:5173/financas/lancamentos"); await p.waitForLoadState("networkidle");
