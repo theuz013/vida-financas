@@ -60,6 +60,7 @@ Organizador manual próprio com o conjunto de recursos do PingDin (contas, cart�
 
 ## Product Principles
 
+0. Celular primeiro (decisão do dono): toda tela nasce para o iPhone, de 320px para cima; o computador é adaptação.
 1. Hoje primeiro: a tela de abertura responde "o que eu tenho para hoje?" juntando as duas vertentes.
 2. Registrar custa poucos toques; corrigir depois é fácil.
 3. Número com contexto: todo valor de "pode gastar" diz até quando e o que já foi descontado.

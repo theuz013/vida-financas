@@ -53,9 +53,18 @@ Todo o resto é cinza (`ink`, `ink-2`, `ink-3`, `sunken`, `line`).
 
 Ícones: Lucide, traço 2. Emoji só nas categorias, que a especificação pede.
 
-## Layout
+## Layout — celular primeiro
 
-Celular: barra de abas (Hoje, Finanças, +, Vida, Ajustes) com o + de registrar no meio. Computador (≥768px): menu lateral e coluna de conteúdo de até 48rem.
+Prioridade do dono: o celular vem antes. Tudo é desenhado para o iPhone (a partir de 320px, iPhone SE) e o computador (≥768px) é adaptação: menu lateral e coluna de até 48rem.
+
+- Barra de abas (Hoje, Finanças, +, Vida, Ajustes). O + do meio é a ação principal da tela atual (`usePlusAction`): Registrar por padrão, Novo compromisso na Agenda, Nova conta a pagar em Contas etc. Assim a ação fica no alcance do polegar e o botão do topo só aparece no computador.
+- Alvo de toque mínimo de 44px. Controles visualmente menores usam a utilidade `hit` / `hit-lg`, que estende a área tocável sem mudar o desenho.
+- Toda ação tem estado de pressionado (`active:`), porque `hover:` não existe no toque.
+- Folhas sobem do rodapé, com alça para arrastar e fechar, e sobem junto com o teclado do iPhone (visualViewport) para o botão de salvar continuar visível.
+- Puxar para atualizar no topo da página (o iPhone não oferece isso com o app instalado).
+- Campos com fonte de 16px (o iOS não dá zoom) e teclado certo (`inputMode="decimal"` para dinheiro).
+- Abaixo de 375px, títulos e o cartão principal ficam mais compactos.
+- Conferência: `node scripts/mobile-audit.cjs` (nada vazando e nenhum alvo menor que 44px) e `node scripts/ui-gestures.cjs`.
 
 ## Pendente
 

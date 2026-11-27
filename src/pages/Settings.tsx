@@ -124,11 +124,11 @@ function CategoriesSection() {
   const [editing, setEditing] = useState<Category | "new" | null>(null);
   const list = cats.filter((c) => c.kind === kind);
   return (
-    <Section title="Categorias" action={<button type="button" className="text-[14px] font-semibold text-ink-2 hover:text-ink" onClick={() => setEditing("new")}>Nova</button>}>
+    <Section title="Categorias" action={<button type="button" className="-my-3 -mr-2 inline-flex h-11 min-w-11 items-center justify-center px-2 text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink" onClick={() => setEditing("new")}>Nova</button>}>
       <Segmented className="mb-2.5" value={kind} onChange={setKind} options={[{ value: "expense", label: "Gastos" }, { value: "income", label: "Receitas" }]} />
       <Card className="flex flex-wrap gap-2 px-3 py-3">
         {list.map((c) => (
-          <button key={c.id} type="button" onClick={() => setEditing(c)} className="inline-flex h-9 items-center gap-1.5 rounded-full bg-sunken px-3 text-[14px] font-medium hover:bg-line/70">
+          <button key={c.id} type="button" onClick={() => setEditing(c)} className="hit inline-flex h-10 items-center gap-1.5 rounded-full bg-sunken px-3.5 text-[14px] font-medium hover:bg-line/70 active:bg-line">
             <span aria-hidden>{c.emoji}</span> {c.name}
           </button>
         ))}
@@ -179,10 +179,10 @@ function AreasSection() {
   const save = useAction(() => (area ? api(`/areas/${area.id}`, { method: "PATCH", body: { name } }) : api("/areas", { body: { name, sort: areas.length } })));
   const remove = useAction(() => api(`/areas/${area!.id}`, { method: "DELETE" }));
   return (
-    <Section title="Frentes da vida" action={<button type="button" className="text-[14px] font-semibold text-ink-2 hover:text-ink" onClick={() => setEditing("new")}>Nova</button>}>
+    <Section title="Frentes da vida" action={<button type="button" className="-my-3 -mr-2 inline-flex h-11 min-w-11 items-center justify-center px-2 text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink" onClick={() => setEditing("new")}>Nova</button>}>
       <Card className="flex flex-wrap gap-2 px-3 py-3">
         {areas.map((a) => (
-          <button key={a.id} type="button" onClick={() => setEditing(a)} className="h-9 rounded-full bg-sunken px-3.5 text-[14px] font-medium hover:bg-line/70">{a.name}</button>
+          <button key={a.id} type="button" onClick={() => setEditing(a)} className="hit h-10 rounded-full bg-sunken px-4 text-[14px] font-medium hover:bg-line/70 active:bg-line">{a.name}</button>
         ))}
       </Card>
       <Sheet open={editing !== null} onClose={() => setEditing(null)} title={area ? "Editar frente" : "Nova frente"} footer={
@@ -267,7 +267,7 @@ function DeleteAccount({ open, onClose }: { open: boolean; onClose: () => void }
 export function PrivacyPage() {
   return (
     <article className="mx-auto max-w-[68ch] px-4 py-10 text-[15.5px] leading-relaxed text-ink-2 [&_h2]:mt-8 [&_h2]:mb-2 [&_h2]:text-[18px] [&_h2]:font-bold [&_h2]:text-ink">
-      <Link to="/" className="text-[14px] font-semibold text-ink-2 hover:text-ink">← Voltar</Link>
+      <Link to="/" className="-my-3 inline-flex h-11 items-center text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">← Voltar</Link>
       <h1 className="mt-4 text-[30px] font-extrabold tracking-[-0.03em] text-ink">Política de privacidade</h1>
       <p className="mt-2 text-[14px]">Vida &amp; Finanças · atualizada em novembro de 2026</p>
       <h2>O que o app guarda</h2>

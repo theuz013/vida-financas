@@ -1,12 +1,30 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { House, ListChecks, Plus, Settings, Wallet } from "lucide-react";
 import { cx } from "./ui";
 import { QuickAdd, type QuickAddPreset } from "./QuickAdd";
+import { PullToRefresh } from "./PullToRefresh";
 import { useMe } from "@/lib/api";
 
 const QuickAddCtx = createContext<(p?: QuickAddPreset) => void>(() => {});
 export const useQuickAdd = () => useContext(QuickAddCtx);
+
+type PlusAction = { label: string; run: () => void } | null;
+const PlusCtx = createContext<(a: PlusAction) => void>(() => {});
+
+/**
+ * A tela pede para o + do meio fazer outra coisa (ex.: "Novo compromisso" na Agenda),
+ * para a ação principal ficar no alcance do polegar. Volta ao registro rápido ao sair.
+ */
+export function usePlusAction(label: string, run: () => void) {
+  const set = useContext(PlusCtx);
+  const runRef = useRef(run);
+  runRef.current = run;
+  useEffect(() => {
+    set({ label, run: () => runRef.current() });
+    return () => set(null);
+  }, [label, set]);
+}
 
 const items = [
   { to: "/", label: "Hoje", icon: House, end: true },
@@ -17,10 +35,13 @@ const items = [
 
 export function Layout() {
   const [preset, setPreset] = useState<QuickAddPreset | null>(null);
+  const [plus, setPlus] = useState<PlusAction>(null);
+  const onPlus = () => (plus ? plus.run() : setPreset({}));
   const { data: me } = useMe();
 
   return (
     <QuickAddCtx.Provider value={(p) => setPreset(p ?? {})}>
+    <PlusCtx.Provider value={setPlus}>
       <div className="md:flex">
         {/* computador: menu lateral */}
         <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-sunken/50 px-3 py-6 md:flex">
@@ -42,17 +63,17 @@ export function Layout() {
           </nav>
           <button
             type="button"
-            onClick={() => setPreset({})}
+            onClick={onPlus}
             className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-accent text-[15px] font-semibold text-on-accent shadow-cta hover:opacity-90"
           >
-            <Plus className="size-[18px]" aria-hidden /> Registrar
+            <Plus className="size-[18px]" aria-hidden /> {plus?.label ?? "Registrar"}
           </button>
           {me?.isDemo ? <p className="mt-auto px-3 text-[12.5px] text-ink-3">Modo demonstração: dados de exemplo, apagados em 24h.</p> : null}
         </aside>
 
         <main className="mx-auto w-full max-w-3xl px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-32 md:px-8 md:pt-10 md:pb-16">
           {me?.isDemo ? (
-            <p className="mb-4 rounded-xl bg-warn-soft px-3.5 py-2 text-[13px] font-medium text-warn md:hidden">Modo demonstração: dados de exemplo.</p>
+            <p className="mb-3 rounded-xl bg-warn-soft px-3.5 py-1.5 text-[13px] font-medium text-warn md:hidden">Modo demonstração: dados de exemplo.</p>
           ) : null}
           <Outlet />
         </main>
@@ -67,9 +88,9 @@ export function Layout() {
           <div className="grid place-items-center">
             <button
               type="button"
-              aria-label="Registrar"
-              onClick={() => setPreset({})}
-              className="grid size-12 place-items-center rounded-full bg-accent text-on-accent shadow-cta active:scale-95 transition-transform"
+              aria-label={plus?.label ?? "Registrar"}
+              onClick={onPlus}
+              className="grid size-14 place-items-center rounded-full bg-accent text-on-accent shadow-cta active:scale-95 transition-transform"
             >
               <Plus className="size-6" aria-hidden />
             </button>
@@ -81,6 +102,8 @@ export function Layout() {
       </nav>
 
       <QuickAdd preset={preset} onClose={() => setPreset(null)} />
+      <PullToRefresh />
+    </PlusCtx.Provider>
     </QuickAddCtx.Provider>
   );
 }
@@ -90,7 +113,7 @@ function Tab({ to, label, icon: Icon, end }: (typeof items)[number]) {
     <NavLink
       to={to}
       end={end}
-      className={({ isActive }) => cx("flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold transition-colors", isActive ? "text-ink" : "text-ink-3")}
+      className={({ isActive }) => cx("flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[11px] font-semibold transition-colors active:bg-sunken", isActive ? "text-ink" : "text-ink-3")}
     >
       <Icon className="size-[22px]" aria-hidden strokeWidth={2} />
       {label}

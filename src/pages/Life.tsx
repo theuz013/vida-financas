@@ -6,7 +6,7 @@ import { api, useAction, useAreas, useList, usePendencias, type CalEvent, type D
 import { localToday, longDate, relativeDay, shortDate } from "@/lib/format";
 import { Button, Card, Chip, Empty, ErrorNote, Field, IconBubble, Input, List, PageHeader, Row, Section, Select, Sheet, Skeleton, cx } from "@/components/ui";
 import { TaskRow } from "./Today";
-import { useQuickAdd } from "@/components/Layout";
+import { usePlusAction, useQuickAdd } from "@/components/Layout";
 
 const tabs = [
   { to: "/vida", label: "Tarefas", end: true },
@@ -27,7 +27,7 @@ export function LifeLayout() {
             to={t.to}
             end={t.end}
             className={({ isActive }) =>
-              cx("h-9 shrink-0 rounded-full px-4 text-[14px] leading-9 font-semibold transition-colors", isActive ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink")
+              cx("hit h-10 shrink-0 rounded-full px-4 text-[14px] leading-10 font-semibold transition-colors", isActive ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink")
             }
           >
             {t.label}
@@ -66,6 +66,7 @@ export function TasksPage() {
   const quickAdd = useQuickAdd();
   const [editing, setEditing] = useState<Task | null>(null);
   const [showDone, setShowDone] = useState(false);
+  usePlusAction("Nova tarefa", () => quickAdd({ mode: "task" }));
   const today = localToday();
   const areaName = new Map(areas.map((a) => [a.id, a.name]));
   const withArea = (t: Task) => ({ ...t, areaName: t.areaId ? areaName.get(t.areaId) : null });
@@ -82,7 +83,7 @@ export function TasksPage() {
   if (isLoading) return <Skeleton className="h-60" />;
   return (
     <div>
-      <div className="mb-4 flex justify-end"><AddButton onClick={() => quickAdd({ mode: "task" })}>Nova tarefa</AddButton></div>
+      <div className="mb-4 hidden justify-end md:flex"><AddButton onClick={() => quickAdd({ mode: "task" })}>Nova tarefa</AddButton></div>
       {open.length === 0 ? <Empty title="Nenhuma tarefa aberta." hint="Anote o que precisa fazer e em qual frente: casa, VZT, LEVVA, carros ou pessoal." /> : null}
       {groups.map(([title, list]) =>
         list.length ? (
@@ -182,6 +183,7 @@ const remindOptions = [
 export function AgendaPage() {
   const { data: events, isLoading } = useList<CalEvent>("events");
   const [editing, setEditing] = useState<CalEvent | "new" | null>(null);
+  usePlusAction("Novo compromisso", () => setEditing("new"));
   const today = localToday();
   const upcoming = (events ?? []).filter((e) => e.date >= today);
   const byDay = new Map<string, CalEvent[]>();
@@ -190,7 +192,7 @@ export function AgendaPage() {
   if (isLoading) return <Skeleton className="h-60" />;
   return (
     <div>
-      <div className="mb-4 flex justify-end"><AddButton onClick={() => setEditing("new")}>Novo compromisso</AddButton></div>
+      <div className="mb-4 hidden justify-end md:flex"><AddButton onClick={() => setEditing("new")}>Novo compromisso</AddButton></div>
       {upcoming.length === 0 ? <Empty title="Nenhum compromisso marcado." hint="Reuniões, consultas e visitas, com aviso antes da hora." /> : null}
       {[...byDay.entries()].map(([day, list]) => (
         <Section key={day} title={day === today ? "Hoje" : relativeDay(day, today) === "amanhã" ? "Amanhã" : longDate(day)} className="[&_h2]:first-letter:uppercase">
@@ -275,6 +277,7 @@ export function RemindersPage() {
   const { data: reminders, isLoading } = useList<Reminder>("reminders");
   const { data: areas = [] } = useAreas();
   const [editing, setEditing] = useState<Reminder | "new" | null>(null);
+  usePlusAction("Novo lembrete", () => setEditing("new"));
   const today = localToday();
   const areaName = new Map(areas.map((a) => [a.id, a.name]));
   const sorted = [...(reminders ?? [])].sort((a, b) => nextMonthlyOccurrence(a.dayOfMonth, today).localeCompare(nextMonthlyOccurrence(b.dayOfMonth, today)));
@@ -282,7 +285,7 @@ export function RemindersPage() {
   if (isLoading) return <Skeleton className="h-60" />;
   return (
     <div>
-      <div className="mb-4 flex justify-end"><AddButton onClick={() => setEditing("new")}>Novo lembrete</AddButton></div>
+      <div className="mb-4 hidden justify-end md:flex"><AddButton onClick={() => setEditing("new")}>Novo lembrete</AddButton></div>
       {sorted.length === 0 ? <Empty title="Nenhum lembrete recorrente." hint='Regras do tipo "todo dia 17: leitura do medidor". O app avisa na véspera e no dia.' /> : (
         <List>
           {sorted.map((r) => {
@@ -369,6 +372,7 @@ export function DeadlinesPage() {
   const { data: deadlines, isLoading } = useList<Deadline>("deadlines");
   const { data: areas = [] } = useAreas();
   const [editing, setEditing] = useState<Deadline | "new" | null>(null);
+  usePlusAction("Novo prazo", () => setEditing("new"));
   const today = localToday();
   const areaName = new Map(areas.map((a) => [a.id, a.name]));
   const open = (deadlines ?? []).filter((d) => !d.done);
@@ -376,7 +380,7 @@ export function DeadlinesPage() {
   if (isLoading) return <Skeleton className="h-60" />;
   return (
     <div>
-      <div className="mb-4 flex justify-end"><AddButton onClick={() => setEditing("new")}>Novo prazo</AddButton></div>
+      <div className="mb-4 hidden justify-end md:flex"><AddButton onClick={() => setEditing("new")}>Novo prazo</AddButton></div>
       {open.length === 0 ? <Empty title="Nenhum prazo cadastrado." hint="Validade de documentos, prazos de processos e renovações que não são conta a pagar." /> : (
         <List>
           {open.map((d) => {

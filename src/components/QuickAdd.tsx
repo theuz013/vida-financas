@@ -164,7 +164,7 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
                 aria-checked={mode === m.value}
                 onClick={() => { setMode(m.value); setCategoryId(null); }}
                 className={cx(
-                  "h-9 shrink-0 rounded-full px-4 text-[14px] font-semibold transition-colors",
+                  "h-10 shrink-0 rounded-full px-4 text-[14px] font-semibold transition-colors",
                   mode === m.value ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink",
                 )}
               >

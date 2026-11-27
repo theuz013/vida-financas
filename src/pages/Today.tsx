@@ -31,9 +31,9 @@ export function TodayPage() {
 
   return (
     <div>
-      <header className="mb-6 pt-2">
-        <p className="text-[15px] font-medium text-ink-2 first-letter:uppercase">{longDate(t.today)}</p>
-        <h1 className="mt-0.5 text-[30px] leading-[1.1] font-extrabold tracking-[-0.03em]">
+      <header className="mb-5 pt-2 max-[374px]:mb-4 max-[374px]:pt-0">
+        <p className="text-[15px] font-medium text-ink-2 first-letter:uppercase max-[374px]:text-[14px]">{longDate(t.today)}</p>
+        <h1 className="mt-0.5 text-[30px] leading-[1.1] font-extrabold tracking-[-0.03em] max-[374px]:text-[25px]">
           {greeting()}{firstName ? `, ${firstName}` : ""}.
         </h1>
       </header>
@@ -48,7 +48,7 @@ export function TodayPage() {
       ) : null}
 
       {toPay.length + t.invoices.length > 0 ? (
-        <Section title="Para pagar" action={<Link to="/financas/contas" className="text-[14px] font-semibold text-ink-2 hover:text-ink">Ver contas</Link>}>
+        <Section title="Para pagar" action={<Link to="/financas/contas" className="-my-3 inline-flex h-11 items-center text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">Ver contas</Link>}>
           <List>
             {toPay.map((b) => {
               const late = b.dueDate < t.today;
@@ -105,7 +105,7 @@ export function TodayPage() {
       ) : null}
 
       {tasks.length ? (
-        <Section title="Tarefas" action={<Link to="/vida" className="text-[14px] font-semibold text-ink-2 hover:text-ink">Ver todas</Link>}>
+        <Section title="Tarefas" action={<Link to="/vida" className="-my-3 inline-flex h-11 items-center text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">Ver todas</Link>}>
           <List>
             {tasks.map((task) => <TaskRow key={task.id} task={task} today={t.today} />)}
           </List>
@@ -168,9 +168,9 @@ function PerDay({ money }: { money: TodayData["money"] }) {
     );
   }
   return (
-    <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 pt-5 pb-4 text-on-hero shadow-cta transition-opacity hover:opacity-95">
+    <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 pt-5 pb-4 text-on-hero shadow-cta transition-opacity hover:opacity-95 active:opacity-90 max-[374px]:px-4 max-[374px]:pt-4 max-[374px]:pb-3.5">
       <p className="text-[14px] font-semibold text-on-hero-2">Pode gastar por dia</p>
-      <p className={cx("num mt-1 text-[44px] leading-none font-extrabold tracking-[-0.035em]", negative && "text-bad")}>
+      <p className={cx("num mt-1 text-[44px] leading-none font-extrabold tracking-[-0.035em] max-[374px]:text-[38px]", negative && "text-bad")}>
         {negative ? "R$ 0" : formatBRL(money.perDay)}
       </p>
       <p className="num mt-3 text-[14px] leading-snug text-on-hero-2">
@@ -201,7 +201,7 @@ export function TaskRow({ task, today, onOpen }: { task: Task; today: string; on
         aria-label={task.done ? "Reabrir tarefa" : "Concluir tarefa"}
         onClick={() => toggle.mutate()}
         className={cx(
-          "grid size-6 shrink-0 place-items-center rounded-full border-2 transition-colors",
+          "hit-lg grid size-6 shrink-0 place-items-center rounded-full border-2 transition-colors",
           task.done ? "border-good bg-good text-surface" : "border-line hover:border-ink-2",
         )}
       >
@@ -237,7 +237,7 @@ function ReminderRow({ id, title, subtitle }: { id: string; title: string; subti
       title={title}
       subtitle={subtitle}
       trailing={
-        <button type="button" onClick={() => done.mutate()} className="h-8 rounded-lg bg-sunken px-3 text-[13px] font-semibold text-ink hover:bg-line/70">
+        <button type="button" onClick={() => done.mutate()} className="hit h-10 rounded-xl bg-sunken px-3.5 text-[14px] font-semibold text-ink hover:bg-line/70 active:bg-line">
           Feito
         </button>
       }

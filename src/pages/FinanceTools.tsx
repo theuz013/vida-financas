@@ -43,7 +43,7 @@ import {
   cx,
 } from "@/components/ui";
 import { PayBill } from "@/components/PayBill";
-import { useQuickAdd } from "@/components/Layout";
+import { usePlusAction, useQuickAdd } from "@/components/Layout";
 import { AccountSheet } from "./Finance";
 
 function useMonth() {
@@ -198,10 +198,11 @@ export function BillsPage() {
   const [paying, setPaying] = useState<Bill | null>(null);
   const [editing, setEditing] = useState<Bill | "new" | null>(null);
   const today = localToday();
+  usePlusAction("Nova conta a pagar", () => setEditing("new"));
 
   return (
     <div>
-      <PageHeader title="Contas a pagar" back="/financas" action={<Button size="sm" onClick={() => setEditing("new")}><Plus className="size-4" />Nova</Button>} />
+      <PageHeader title="Contas a pagar" back="/financas" action={<span className="hidden md:block"><Button size="sm" onClick={() => setEditing("new")}><Plus className="size-4" />Nova</Button></span>} />
       <Segmented className="mb-5" value={tab} onChange={setTab} options={[{ value: "pending", label: "A pagar" }, { value: "paid", label: "Pagas" }]} />
       {isLoading ? <Skeleton className="h-60" /> : !bills?.length ? (
         <Empty title={tab === "pending" ? "Nenhuma conta a pagar." : "Nenhuma conta paga ainda."} hint={tab === "pending" ? "Cadastre contas como internet, luz e água para o app avisar antes de vencer." : undefined} />

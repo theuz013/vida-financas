@@ -167,3 +167,25 @@ dialog.sheet:not([open]) {
     translate: 0 12px;
   }
 }
+
+/* Área de toque mínima de 44px (Apple) sem mudar o desenho: estende o alvo invisível. */
+@utility hit {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -6px -4px;
+  }
+}
+@utility hit-lg {
+  position: relative;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+  }
+}
+
+html {
+  touch-action: manipulation;
+}

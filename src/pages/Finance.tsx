@@ -83,7 +83,7 @@ export function FinancePage() {
 
 function AddLink({ onClick, label }: { onClick: () => void; label: string }) {
   return (
-    <button type="button" onClick={onClick} className="inline-flex items-center gap-1 text-[14px] font-semibold text-ink-2 hover:text-ink">
+    <button type="button" onClick={onClick} className="-my-3 inline-flex h-11 items-center gap-1 text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">
       <Plus className="size-4" aria-hidden /> {label}
     </button>
   );

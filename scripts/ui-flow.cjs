@@ -38,7 +38,7 @@ const { chromium, devices } = require("playwright");
   ok("lembrete recorrente criado", await p.getByText("Trocar filtro de água").isVisible());
   // conta a pagar nova
   await p.goto("http://localhost:5173/financas/contas"); await p.waitForLoadState("networkidle");
-  await p.getByRole("button", { name: "Nova" }).click();
+  await p.getByRole("button", { name: "Nova conta a pagar" }).click();
   await p.getByLabel("Nome").fill("Nio Fibra"); await p.getByLabel("Valor").fill("67,54");
   await p.getByRole("button", { name: "Salvar" }).click(); await p.waitForTimeout(600);
   ok("conta a pagar criada", await p.getByText("Nio Fibra").isVisible());

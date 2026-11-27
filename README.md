@@ -59,6 +59,16 @@ Teste dos fluxos pela interface, no tamanho de um iPhone (Playwright):
 node scripts/ui-flow.cjs
 ```
 
+Celular (prioridade do app): auditoria de toque e largura no iPhone SE, e gestos (arrastar para fechar, puxar para atualizar, + por tela):
+
+```bash
+node scripts/mobile-audit.cjs
+```
+
+```bash
+node scripts/ui-gestures.cjs
+```
+
 Para regerar os ícones a partir de `public/icon.svg`:
 
 ```bash

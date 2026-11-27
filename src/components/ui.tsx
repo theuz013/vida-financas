@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { Link } from "react-router";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { formatBRL } from "@/lib/format";
@@ -11,10 +11,10 @@ export function cx(...c: (string | false | null | undefined)[]) {
 
 type BtnVariant = "primary" | "secondary" | "ghost" | "danger";
 const btn: Record<BtnVariant, string> = {
-  primary: "bg-accent text-on-accent shadow-cta hover:opacity-90 active:opacity-80",
-  secondary: "bg-sunken text-ink hover:bg-line/70",
-  ghost: "text-ink-2 hover:bg-sunken hover:text-ink",
-  danger: "bg-bad-soft text-bad hover:opacity-85",
+  primary: "bg-accent text-on-accent shadow-cta hover:opacity-90 active:opacity-75",
+  secondary: "bg-sunken text-ink hover:bg-line/70 active:bg-line",
+  ghost: "text-ink-2 hover:bg-sunken hover:text-ink active:bg-sunken",
+  danger: "bg-bad-soft text-bad hover:opacity-85 active:opacity-70",
 };
 
 export function Button({
@@ -35,7 +35,7 @@ export function Button({
         "inline-flex items-center justify-center gap-2 font-semibold transition-[opacity,background-color,color] duration-150 disabled:opacity-45 disabled:pointer-events-none",
         size === "lg" && "h-14 rounded-full px-6 text-[17px] w-full",
         size === "md" && "h-11 rounded-xl px-4 text-[15px]",
-        size === "sm" && "h-8 rounded-lg px-3 text-[13px]",
+        size === "sm" && "hit h-10 rounded-xl px-3.5 text-[14px]",
         btn[variant],
         className,
       )}
@@ -52,7 +52,7 @@ export function IconButton({ label, className, children, ...rest }: ButtonHTMLAt
       aria-label={label}
       title={label}
       {...rest}
-      className={cx("inline-grid size-10 place-items-center rounded-full text-ink-2 hover:bg-sunken hover:text-ink transition-colors", className)}
+      className={cx("inline-grid size-11 place-items-center rounded-full text-ink-2 hover:bg-sunken hover:text-ink active:bg-sunken transition-colors", className)}
     >
       {children}
     </button>
@@ -106,7 +106,7 @@ export function Row({
       {to ? <ChevronRight className="size-4 shrink-0 text-ink-3" aria-hidden /> : null}
     </>
   );
-  const cls = cx("flex w-full items-center gap-3 px-4 py-3.5 text-left", (to || onClick) && "hover:bg-sunken/60 transition-colors", className);
+  const cls = cx("flex min-h-14 w-full items-center gap-3 px-4 py-3.5 text-left", (to || onClick) && "hover:bg-sunken/60 active:bg-sunken transition-colors", className);
   if (to) return <Link to={to} className={cls}>{inner}</Link>;
   if (onClick) return <button type="button" onClick={onClick} className={cls}>{inner}</button>;
   return <div className={cls}>{inner}</div>;
@@ -173,14 +173,14 @@ export function PageHeader({ title, subtitle, back, action }: { title: string; s
   return (
     <header className="mb-6 pt-2">
       {back ? (
-        <Link to={back} className="-ml-2 mb-1 inline-flex h-9 items-center gap-0.5 rounded-full pr-3 pl-1 text-[15px] font-medium text-ink-2 hover:text-ink">
+        <Link to={back} className="-ml-2 mb-1 inline-flex h-11 items-center gap-0.5 rounded-full pr-3 pl-1 text-[15px] font-medium text-ink-2 hover:text-ink active:text-ink">
           <ChevronLeft className="size-5" aria-hidden />
           Voltar
         </Link>
       ) : null}
       <div className="flex items-end justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.03em]">{title}</h1>
+          <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.03em] max-[374px]:text-[26px]">{title}</h1>
           {subtitle ? <p className="mt-1.5 text-[15px] text-ink-2">{subtitle}</p> : null}
         </div>
         {action}
@@ -246,7 +246,8 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
           aria-checked={value === o.value}
           onClick={() => onChange(o.value)}
           className={cx(
-            "h-9 rounded-lg text-[14px] font-semibold transition-colors",
+            "h-10 rounded-lg text-[14px] font-semibold transition-colors",
+            "hit",
             value === o.value ? "bg-surface text-ink shadow-card" : "text-ink-2 hover:text-ink",
           )}
         >
@@ -259,14 +260,58 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
 
 /* ---------- folha (bottom sheet) ---------- */
 
+/**
+ * Folha que sobe do rodapé (celular) ou janela central (computador).
+ * No celular: alça para arrastar e fechar, e sobe junto com o teclado do iPhone
+ * para o botão de salvar continuar visível.
+ */
 export function Sheet({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const drag = useRef<{ y: number; dy: number } | null>(null);
+  const [dy, setDy] = useState(0);
+  const [keyboard, setKeyboard] = useState(0);
+
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
+    setDy(0);
   }, [open]);
+
+  // teclado do iOS: o visualViewport encolhe; levanta a folha pela diferença
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!open || !vv) return;
+    const update = () => setKeyboard(Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)));
+    update();
+    vv.addEventListener("resize", update);
+    vv.addEventListener("scroll", update);
+    return () => {
+      vv.removeEventListener("resize", update);
+      vv.removeEventListener("scroll", update);
+      setKeyboard(0);
+    };
+  }, [open]);
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" || (e.target as HTMLElement).closest("button")) return;
+    drag.current = { y: e.clientY, dy: 0 };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!drag.current) return;
+    drag.current.dy = Math.max(0, e.clientY - drag.current.y);
+    setDy(drag.current.dy);
+  };
+  const onPointerUp = () => {
+    if (!drag.current) return;
+    const close = drag.current.dy > 90;
+    drag.current = null;
+    setDy(0);
+    if (close) onClose();
+  };
+
   return (
     <dialog
       ref={ref}
@@ -276,17 +321,26 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
         if (e.target === ref.current) onClose();
       }}
       aria-label={title}
+      style={{
+        marginBottom: keyboard ? keyboard : undefined,
+        translate: dy ? `0 ${dy}px` : undefined,
+        transition: dy ? "none" : undefined,
+        maxHeight: keyboard ? `calc(100dvh - ${keyboard}px - 8px)` : undefined,
+      }}
     >
       {open ? (
-        <div className="flex max-h-[92dvh] flex-col">
-          <div className="flex items-center justify-between gap-3 px-5 pt-4 pb-2">
-            <h2 className="text-[19px] font-bold tracking-[-0.02em]">{title}</h2>
-            <IconButton label="Fechar" onClick={onClose} className="-mr-2">
-              <X className="size-5" />
-            </IconButton>
+        <div className="flex flex-col" style={{ maxHeight: keyboard ? `calc(100dvh - ${keyboard}px - 8px)` : "92dvh" }}>
+          <div className="touch-none select-none md:touch-auto" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+            <div aria-hidden className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-line md:hidden" />
+            <div className="flex items-center justify-between gap-3 px-5 pt-2 pb-2 md:pt-4">
+              <h2 className="text-[19px] font-bold tracking-[-0.02em]">{title}</h2>
+              <IconButton label="Fechar" onClick={onClose} className="-mr-2">
+                <X className="size-5" />
+              </IconButton>
+            </div>
           </div>
-          <div className="overflow-y-auto px-5 pt-2 pb-4">{children}</div>
-          {footer ? <div className="safe-bottom border-t border-line px-5 pt-3">{footer}</div> : <div className="safe-bottom" />}
+          <div className="overscroll-contain overflow-y-auto px-5 pt-2 pb-4">{children}</div>
+          {footer ? <div className={cx("border-t border-line px-5 pt-3", keyboard ? "pb-3" : "safe-bottom")}>{footer}</div> : <div className={keyboard ? "pb-3" : "safe-bottom"} />}
         </div>
       ) : null}
     </dialog>
