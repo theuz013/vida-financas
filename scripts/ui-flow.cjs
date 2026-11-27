@@ -39,12 +39,12 @@ const { chromium, devices } = require("playwright");
   // conta a pagar nova
   await p.goto("http://localhost:5173/financas/contas"); await p.waitForLoadState("networkidle");
   await p.getByRole("button", { name: "Nova conta a pagar" }).click();
-  await p.getByLabel("Nome").fill("Nio Fibra"); await p.getByLabel("Valor").fill("67,54");
+  await p.getByLabel("Nome").fill("Conta de teste"); await p.getByLabel("Valor").fill("67,54");
   await p.getByRole("button", { name: "Salvar" }).click(); await p.waitForTimeout(600);
-  ok("conta a pagar criada", await p.getByText("Nio Fibra").isVisible());
+  ok("conta a pagar criada", await p.getByText("Conta de teste").isVisible());
   // persistência após recarregar
   await p.reload(); await p.waitForLoadState("networkidle");
-  ok("dados persistem após recarregar", await p.getByText("Nio Fibra").isVisible());
+  ok("dados persistem após recarregar", await p.getByText("Conta de teste").isVisible());
   console.log("erros:", JSON.stringify(errors));
   await b.close();
 })();

@@ -36,8 +36,8 @@ const plusDays = (n) => {
 };
 
 // 1. cadastro do dono e bloqueio de um segundo cadastro
-const email = `matheus+${Date.now()}@example.com`;
-let r = await call("POST", "/api/auth/sign-up/email", { name: "Matheus", email, password: "senha-forte-123" });
+const email = `dono+${Date.now()}@example.com`;
+let r = await call("POST", "/api/auth/sign-up/email", { name: "Dono", email, password: "senha-forte-123" });
 check("cadastro do primeiro usuário", r.status === 200, `status ${r.status}`);
 const ownerCookie = cookie;
 cookie = "";
@@ -52,18 +52,18 @@ r = await call("POST", "/api/auth/sign-in/email", { email, password: "senha-fort
 check("login", r.status === 200 && cookie.includes("session"));
 void ownerCookie;
 
-// 2. dados iniciais
+// 2. dados iniciais genéricos (sem nenhum dado pessoal)
 r = await call("GET", "/api/bills?status=pending");
-const names = r.data.map((b) => b.name);
-check("seed: contas recorrentes", ["Nio Fibra", "Metha Energia", "Copasa", "Cemig"].every((n) => names.includes(n)), names.join(", "));
-const nio = r.data.find((b) => b.name === "Nio Fibra");
-check("seed: Nio Fibra R$ 67,54 dia 26", nio?.amount === 6754 && nio.dueDate.endsWith("-26"));
+check("cadastro novo não traz contas prontas", r.data.length === 0, `${r.data.length} contas`);
 r = await call("GET", "/api/reminders");
-check("seed: lembretes Copasa 17/13 e Cemig 10", [17, 13, 10].every((d) => r.data.some((x) => x.dayOfMonth === d)));
+check("cadastro novo não traz lembretes prontos", r.data.length === 0);
 r = await call("GET", "/api/categories");
 const cats = r.data;
 const cat = (n) => cats.find((c) => c.name === n).id;
-check("seed: categorias com emoji", cats.length >= 10 && cats.every((c) => c.emoji));
+check("categorias padrão com emoji", cats.length >= 10 && cats.every((c) => c.emoji));
+r = await call("GET", "/api/areas");
+check("frentes padrão genéricas", ["Casa", "Trabalho", "Carro", "Pessoal"].every((n) => r.data.some((a) => a.name === n)));
+const casa = r.data.find((a) => a.name === "Casa");
 
 // 3. contas e cartões
 r = await call("GET", "/api/accounts");
@@ -111,8 +111,8 @@ r = await call("GET", "/api/transactions");
 check("desfazer apaga o gasto lançado", !r.data.some((t) => t.description === "IPVA"));
 r = await call("POST", `/api/bills/${ipva.id}/pay`, {});
 check("pagar de novo depois de desfazer", r.status === 200);
-const copasa = (await call("GET", "/api/bills?status=pending")).data.find((b) => b.name === "Copasa");
-r = await call("POST", `/api/bills/${copasa.id}/pay`, { accountId: inter.id });
+const water = (await call("POST", "/api/bills", { name: "Água", dueDate: today })).data;
+r = await call("POST", `/api/bills/${water.id}/pay`, { accountId: inter.id });
 check("conta de valor variável pede o valor", r.status === 400);
 
 // 6. resumo do mês
@@ -131,12 +131,11 @@ check("posso comprar (parcelado)", r.data.options[0]?.installmentAmount === 3000
 
 // 8. vertente pessoal
 r = await call("GET", "/api/areas");
-const casa = r.data.find((a) => a.name === "Casa");
-check("áreas padrão", ["Casa", "VZT", "LEVVA", "Carros", "Pessoal"].every((n) => r.data.some((a) => a.name === n)));
+
 r = await call("POST", "/api/tasks", { title: "Ligar para o mecânico", dueDate: today, areaId: casa.id, priority: "high" });
 const task = r.data;
 check("tarefa com prazo", r.status === 201);
-r = await call("POST", "/api/events", { title: "Reunião LEVVA", date: today, time: "23:59", remindMinutes: 30 });
+r = await call("POST", "/api/events", { title: "Reunião com o cliente", date: today, time: "23:59", remindMinutes: 30 });
 check("compromisso com lembrete", r.status === 201);
 r = await call("POST", "/api/reminders", { title: "Regar as plantas", dayOfMonth: day });
 const rem = r.data;
@@ -150,7 +149,7 @@ check("área de outro usuário/inexistente é recusada", r.status === 404);
 r = await call("GET", "/api/today");
 const t = r.data;
 check("Hoje: tarefa", t.tasks.today.some((x) => x.id === task.id));
-check("Hoje: compromisso", t.events.today.some((x) => x.title === "Reunião LEVVA"));
+check("Hoje: compromisso", t.events.today.some((x) => x.title === "Reunião com o cliente"));
 check("Hoje: lembrete do dia", t.reminders.today.some((x) => x.id === rem.id));
 check("Hoje: prazo em alerta", t.deadlines.some((x) => x.title === "Renovar CNH" && x.daysLeft === 10));
 r = await call("POST", "/api/bills", { name: "Condomínio", amount: 50000, dueDate: today });

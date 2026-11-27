@@ -160,7 +160,7 @@ export const bills = sqliteTable(
     id: text("id").primaryKey(),
     userId: owner(),
     name: text("name").notNull(),
-    /** Null = valor variável, a confirmar (ex.: Copasa, Cemig). */
+    /** Null = valor variável, a confirmar (ex.: água, luz). */
     amount: integer("amount"),
     dueDate: text("due_date").notNull(),
     recurrence: text("recurrence", { enum: ["none", "monthly", "yearly"] })
@@ -318,7 +318,7 @@ export const notificationLog = sqliteTable(
 
 /* ===================== Casa (vertente familiar) ===================== */
 
-/** A casa do Matheus. Uma casa por usuário nesta fase. */
+/** A casa (vertente familiar). Uma casa por usuário nesta fase. */
 export const households = sqliteTable("households", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

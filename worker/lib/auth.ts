@@ -4,7 +4,7 @@ import { bearer } from "better-auth/plugins/bearer";
 import { APIError } from "better-auth/api";
 import { count, eq } from "drizzle-orm";
 import { getDb, schema } from "./db";
-import { seedDefaults, seedOwner } from "./seed";
+import { seedDefaults } from "./seed";
 
 export const DEMO_EMAIL_DOMAIN = "demo.vida-financas.local";
 
@@ -75,13 +75,8 @@ export function createAuth(env: Env, opts: { inviteSignup?: boolean } = {}) {
             return { data: user };
           },
           after: async (user) => {
+            // toda conta nova recebe só o genérico (categorias, frentes e carteira)
             await seedDefaults(db, user.id, tz);
-            if (isDemoEmail(user.email) || opts.inviteSignup) return;
-            const [{ n }] = await db
-              .select({ n: count() })
-              .from(schema.user)
-              .where(eq(schema.user.isDemo, false));
-            if (n === 1) await seedOwner(db, user.id, tz);
           },
         },
       },
