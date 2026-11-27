@@ -67,11 +67,27 @@ node scripts/icons.mjs
 
 ## Publicar na Cloudflare (gratuito)
 
-1. Entre na sua conta:
+Este app usa uma **conta Cloudflare própria**, separada de qualquer outro projeto (avantclinic incluído). Nada dele é criado numa conta já usada por outro sistema.
+
+1. Crie a conta nova na Cloudflare (gratuita). Se o wrangler já estiver logado em outra conta nesta máquina, saia primeiro:
+
+   ```bash
+   npx wrangler logout
+   ```
+
+   Depois entre com a conta nova:
 
    ```bash
    npx wrangler login
    ```
+
+   Confira que é a conta certa antes de criar qualquer coisa:
+
+   ```bash
+   npx wrangler whoami
+   ```
+
+   Copie o Account ID que aparecer para o campo `account_id` do `wrangler.jsonc` (tire o `//` da frente). Assim o deploy só aceita essa conta.
 
 2. Crie o banco e copie o `database_id` que aparecer para o `wrangler.jsonc`:
 
