@@ -176,6 +176,29 @@ curl -X POST https://SEU-ENDERECO/api/v1/transactions -H "X-Api-Key: vf_..." -H 
 
 As respostas de erro vêm em JSON com `error` em português, para o assistente repassar.
 
+## Casa (vertente familiar)
+
+Aba **Casa**. O primeiro a criar a casa vira administrador e gera um **código de convite** (6 caracteres, vale 7 dias, pode ser cancelado ou trocado). Quem recebe o código toca em "Tenho um código de convite" na tela de entrada e já cria a conta dentro da casa; quem já tem conta digita o código em Casa.
+
+- **Papéis:** administrador (tudo) e membro. A casa sempre tem pelo menos um administrador: não dá para rebaixar ou tirar o último, e ele passa o papel antes de sair.
+- **Permissões por membro** (o administrador liga e desliga): ver e editar as finanças da casa, criar tarefas e compromissos, mexer na lista de compras. Todo membro vê as tarefas e compromissos da casa e faz as próprias tarefas. Criança fica sem finanças.
+- **Contas da casa:** com vencimento, recorrência e **quem pagou**. Quem pagou pode lançar o gasto também nas próprias finanças.
+- **Tarefas da casa** com responsável (a pessoa recebe push), **agenda** com lembrete para todos e **lista de compras** compartilhada.
+- **Saída:** quem sai ou é removido perde o acesso na hora; os dados da casa ficam para os outros (os registros que ele criou passam para um administrador).
+- Uma casa por usuário. Sem WhatsApp para a família: avisos por push e na tela Hoje.
+
+Os registros da casa usam as mesmas tabelas do app (contas a pagar, tarefas, compromissos) com o campo `household_id`; as rotas pessoais nunca mostram nem alteram o que é da casa. Testes:
+
+```bash
+node scripts/smoke-household.mjs
+```
+
+```bash
+node scripts/ui-household.cjs
+```
+
+(os dois pedem banco local vazio, como o `ui-owner.cjs`).
+
 ## Lojas (fase 2)
 
 O app já tem o que a revisão pede: exclusão de conta e exportação dos dados (Ajustes), política de privacidade (`/privacidade`) e modo demonstração (`DEMO_ENABLED`, botão "Ver com dados de exemplo" na tela de entrada) com dados de exemplo, apagados depois de 24h. O empacotamento com Capacitor e o push nativo (FCM/APNs, em `worker/lib/push.ts`) ficam para a fase 2.

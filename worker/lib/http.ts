@@ -1,6 +1,6 @@
 import { Hono, type Context } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull, type SQL } from "drizzle-orm";
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 import { z } from "zod";
 import { schema, type DB } from "./db";
@@ -12,7 +12,7 @@ export type AppEnv = {
 
 export const router = () => new Hono<AppEnv>();
 
-export function bad(message: string, status: 400 | 401 | 403 | 404 | 409 = 400): never {
+export function bad(message: string, status: 400 | 401 | 403 | 404 | 409 | 410 = 400): never {
   throw new HTTPException(status, { message });
 }
 
@@ -65,12 +65,18 @@ export const refs = {
   area: (id?: string | null) => ({ table: schema.areas, id, label: "Área" }),
 };
 
-/** Busca uma linha do usuário ou devolve 404. */
+/** Registros da casa nunca passam pelas rotas pessoais (que não checam permissão de casa). */
+function personalOnly(table: OwnedTable): SQL[] {
+  const t = table as OwnedTable & { householdId?: any };
+  return t.householdId ? [isNull(t.householdId)] : [];
+}
+
+/** Busca uma linha pessoal do usuário ou devolve 404. */
 export async function findOwned<T extends OwnedTable>(db: DB, table: T, userId: string, id: string) {
   const rows = await db
     .select()
     .from(table as SQLiteTable)
-    .where(and(eq(table.id, id), eq(table.userId, userId)))
+    .where(and(eq(table.id, id), eq(table.userId, userId), ...personalOnly(table)))
     .limit(1);
   if (rows.length === 0) bad("Registro não encontrado.", 404);
   return rows[0] as T["$inferSelect"];
@@ -78,7 +84,7 @@ export async function findOwned<T extends OwnedTable>(db: DB, table: T, userId: 
 
 export async function deleteOwned(db: DB, table: OwnedTable, userId: string, ids: string[]) {
   if (ids.length === 0) return;
-  await db.delete(table).where(and(inArray(table.id, ids), eq(table.userId, userId)));
+  await db.delete(table).where(and(inArray(table.id, ids), eq(table.userId, userId), ...personalOnly(table)));
 }
 
 export async function sha256Hex(text: string): Promise<string> {

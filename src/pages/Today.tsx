@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { CalendarClock, Check, Clock, CreditCard, Hourglass, Repeat } from "lucide-react";
+import { CalendarClock, Check, Clock, CreditCard, Hourglass, Repeat, Settings, Users } from "lucide-react";
 import { api, useAction, useMe, useToday, type Bill, type Task, type TodayData } from "@/lib/api";
 import { formatBRL, greeting, longDate, relativeDay, shortDate } from "@/lib/format";
 import { Chip, Empty, IconBubble, List, Money, Row, Section, Skeleton, cx } from "@/components/ui";
 import { PayBill } from "@/components/PayBill";
 import { SetupGuide } from "@/components/Setup";
+import { HouseTaskRow } from "./House";
 
 export function TodayPage() {
   const { data: me } = useMe();
@@ -26,12 +27,16 @@ export function TodayPage() {
   const toPay = [...t.bills.overdue, ...t.bills.today];
   const tasks = [...t.tasks.overdue, ...t.tasks.today];
   const nothing =
-    toPay.length + t.invoices.length + tasks.length + t.events.today.length + t.reminders.today.length + t.deadlines.length === 0;
+    toPay.length + t.invoices.length + tasks.length + t.events.today.length + t.reminders.today.length + t.deadlines.length === 0 &&
+    !(t.house && t.house.bills.overdue.length + t.house.bills.today.length + t.house.tasks.length + t.house.events.length);
   const firstName = me?.name?.split(" ")[0];
 
   return (
     <div>
-      <header className="mb-5 pt-2 max-[374px]:mb-4 max-[374px]:pt-0">
+      <header className="relative mb-5 pt-2 pr-10 max-[374px]:mb-4 max-[374px]:pt-0 md:pr-0">
+        <Link to="/ajustes" aria-label="Ajustes" className="absolute top-0 -right-2 grid size-11 place-items-center rounded-full text-ink-2 hover:bg-sunken active:bg-sunken md:hidden">
+          <Settings className="size-[22px]" aria-hidden />
+        </Link>
         <p className="text-[15px] font-medium text-ink-2 first-letter:uppercase max-[374px]:text-[14px]">{longDate(t.today)}</p>
         <h1 className="mt-0.5 text-[30px] leading-[1.1] font-extrabold tracking-[-0.03em] max-[374px]:text-[25px]">
           {greeting()}{firstName ? `, ${firstName}` : ""}.
@@ -39,7 +44,6 @@ export function TodayPage() {
       </header>
 
       <PerDay money={t.money} />
-      {me?.isDemo ? null : <SetupGuide />}
 
       {nothing ? (
         <div className="mt-8">
@@ -150,8 +154,46 @@ export function TodayPage() {
         </Section>
       ) : null}
 
+      {t.house ? <HouseToday house={t.house} today={t.today} /> : null}
+
+      {me?.isDemo ? null : <SetupGuide />}
+
       <PayBill bill={paying} onClose={() => setPaying(null)} />
     </div>
+  );
+}
+
+/** A parte da casa no Hoje: contas (se pode ver as finanças), tarefas suas ou sem responsável e agenda. */
+function HouseToday({ house, today }: { house: NonNullable<TodayData["house"]>; today: string }) {
+  const bills = [...house.bills.overdue, ...house.bills.today];
+  if (bills.length + house.tasks.length + house.events.length === 0) return null;
+  return (
+    <Section title={house.name} action={<Link to="/casa" className="-my-3 inline-flex h-11 items-center text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">Abrir</Link>}>
+      <List>
+        {bills.map((b) => {
+          const late = b.dueDate < today;
+          return (
+            <Row
+              key={b.id}
+              to="/casa/contas"
+              leading={<IconBubble tone={late ? "bad" : "neutral"}><Users /></IconBubble>}
+              title={b.name}
+              subtitle={late ? `Conta da casa · venceu ${relativeDay(b.dueDate, today)}` : "Conta da casa · vence hoje"}
+              trailing={
+                <div className="flex flex-col items-end gap-1">
+                  {b.amount != null ? <Money cents={b.amount} className="text-[15px] font-semibold" /> : <span className="text-[13px] text-ink-2">a confirmar</span>}
+                  {late ? <Chip tone="bad">Vencida</Chip> : <Chip tone="warn">Hoje</Chip>}
+                </div>
+              }
+            />
+          );
+        })}
+        {house.events.map((e) => (
+          <Row key={e.id} to="/casa/agenda" leading={<IconBubble><Clock /></IconBubble>} title={e.title} subtitle={e.location ?? "Compromisso da casa"} trailing={<span className="num text-[15px] font-semibold">{e.time ?? "Dia todo"}</span>} />
+        ))}
+        {house.tasks.map((task) => <HouseTaskRow key={task.id} task={task} today={today} />)}
+      </List>
+    </Section>
   );
 }
 

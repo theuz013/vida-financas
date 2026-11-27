@@ -28,7 +28,7 @@ export async function loadFinance(db: DB, userId: string) {
   const [accounts, txs, bills, settings] = await Promise.all([
     db.query.accounts.findMany({ where: (a, { eq }) => eq(a.userId, userId), orderBy: (a) => a.createdAt }),
     db.query.transactions.findMany({ where: (t, { eq }) => eq(t.userId, userId) }),
-    db.query.bills.findMany({ where: (b, { eq }) => eq(b.userId, userId) }),
+    db.query.bills.findMany({ where: (b, { eq, and, isNull }) => and(eq(b.userId, userId), isNull(b.householdId)) }),
     db.query.settings.findFirst({ where: (s, { eq }) => eq(s.userId, userId) }),
   ]);
   return { accounts, txs, bills, settings };
@@ -288,7 +288,7 @@ finance.get("/bills", async (c) => {
   const { db, userId } = c.var;
   const status = c.req.query("status") as "pending" | "paid" | undefined;
   const rows = await db.query.bills.findMany({
-    where: (b, { eq, and }) => (status ? and(eq(b.userId, userId), eq(b.status, status)) : eq(b.userId, userId)),
+    where: (b, { eq, and, isNull }) => (status ? and(eq(b.userId, userId), isNull(b.householdId), eq(b.status, status)) : and(eq(b.userId, userId), isNull(b.householdId))),
     orderBy: (b, { asc, desc }) => (status === "paid" ? desc(b.paidAt) : asc(b.dueDate)),
     limit: 300,
   });

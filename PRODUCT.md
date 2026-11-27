@@ -18,6 +18,12 @@ Um usuário no MVP: o Matheus, que se diz muito desorganizado e quer um lugar s�
 
 O app nasce pronto para vários usuários (lojas), mas o cadastro fica fechado até o dono decidir abrir.
 
+## As três vertentes
+
+1. Vida pessoal: rotina, planos, tarefas e compromissos dele.
+2. Gastos pessoais: contas e finanças dele.
+3. Contas da casa (vertente familiar): a casa dele, com cada pessoa no seu login, entrada por código de convite (6 caracteres, 7 dias, revogável), papéis de administrador e membro, permissões por membro (finanças, criar tarefas e compromissos, lista de compras), contas da casa com "quem pagou", tarefas com responsável, agenda e lista de compras. Não é SaaS para várias famílias (essa ideia continua arquivada) e não tem WhatsApp: avisos só por push e dentro do app. O assistente do WhatsApp é só do dono.
+
 ## Product Purpose
 
 Responder duas perguntas sem esforço: "o que eu tenho para hoje?" e "quanto eu posso gastar?". Duas vertentes de mesmo peso, financeira e pessoal, cada uma com telas, registros e resumo próprios, que se encontram na visão Hoje (a tela principal).

@@ -173,6 +173,10 @@ export const bills = sqliteTable(
     source: text("source", { enum: ["manual", "whatsapp", "import"] }).notNull().default("manual"),
     /** Conta recorrente: a ocorrência anterior que gerou esta (para desfazer o pagamento). */
     previousBillId: text("previous_bill_id"),
+    /** Registro da casa (vertente familiar). Null = pessoal. Sem FK: coluna adicionada por ALTER; a limpeza é feita no código. */
+    householdId: text("household_id"),
+    /** Conta da casa: quem pagou. */
+    paidBy: text("paid_by"),
     ...timestamps,
   },
   (t) => [index("bills_user_due").on(t.userId, t.dueDate)],
@@ -205,6 +209,10 @@ export const tasks = sqliteTable(
     doneAt: integer("done_at"),
     /** Lembrete opcional (epoch ms). */
     remindAt: integer("remind_at"),
+    /** Registro da casa (vertente familiar). Null = pessoal. Sem FK: coluna adicionada por ALTER; a limpeza é feita no código. */
+    householdId: text("household_id"),
+    /** Tarefa da casa: responsável (null = qualquer um). */
+    assigneeId: text("assignee_id"),
     ...timestamps,
   },
   (t) => [index("tasks_user").on(t.userId, t.done)],
@@ -223,6 +231,8 @@ export const events = sqliteTable(
     /** Minutos de antecedência do lembrete; null = sem lembrete. */
     remindMinutes: integer("remind_minutes"),
     areaId: text("area_id").references(() => areas.id, { onDelete: "set null" }),
+    /** Registro da casa (vertente familiar). Null = pessoal. Sem FK: coluna adicionada por ALTER; a limpeza é feita no código. */
+    householdId: text("household_id"),
     ...timestamps,
   },
   (t) => [index("events_user_date").on(t.userId, t.date)],
@@ -257,6 +267,8 @@ export const deadlines = sqliteTable(
     areaId: text("area_id").references(() => areas.id, { onDelete: "set null" }),
     done: integer("done", { mode: "boolean" }).notNull().default(false),
     notes: text("notes"),
+    /** Registro da casa (vertente familiar). Null = pessoal. Sem FK: coluna adicionada por ALTER; a limpeza é feita no código. */
+    householdId: text("household_id"),
     ...timestamps,
   },
   (t) => [index("deadlines_user").on(t.userId, t.date)],
@@ -302,4 +314,70 @@ export const notificationLog = sqliteTable(
     sentAt: integer("sent_at").notNull().default(now),
   },
   (t) => [uniqueIndex("notification_key").on(t.userId, t.key)],
+);
+
+/* ===================== Casa (vertente familiar) ===================== */
+
+/** A casa do Matheus. Uma casa por usuário nesta fase. */
+export const households = sqliteTable("households", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+  ...timestamps,
+});
+
+export const householdMembers = sqliteTable(
+  "household_members",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    /** Único: cada usuário pertence a uma só casa. */
+    userId: text("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["admin", "member"] }).notNull().default("member"),
+    /** Criança: finanças desligadas por padrão. */
+    isChild: integer("is_child", { mode: "boolean" }).notNull().default(false),
+    canFinance: integer("can_finance", { mode: "boolean" }).notNull().default(true),
+    canCreateTasks: integer("can_create_tasks", { mode: "boolean" }).notNull().default(true),
+    canShopping: integer("can_shopping", { mode: "boolean" }).notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [index("household_members_house").on(t.householdId)],
+);
+
+export const householdInvites = sqliteTable(
+  "household_invites",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    code: text("code").notNull().unique(),
+    expiresAt: integer("expires_at").notNull(),
+    revokedAt: integer("revoked_at"),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [index("household_invites_house").on(t.householdId)],
+);
+
+export const shoppingItems = sqliteTable(
+  "shopping_items",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    quantity: text("quantity"),
+    checked: integer("checked", { mode: "boolean" }).notNull().default(false),
+    addedBy: text("added_by").references(() => user.id, { onDelete: "set null" }),
+    checkedBy: text("checked_by").references(() => user.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [index("shopping_house").on(t.householdId, t.checked)],
 );

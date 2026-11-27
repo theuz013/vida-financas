@@ -15,6 +15,13 @@
       "when": 1795804020759,
       "tag": "0001_bill_previous",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795806615517,
+      "tag": "0002_household",
+      "breakpoints": true
     }
   ]
 }

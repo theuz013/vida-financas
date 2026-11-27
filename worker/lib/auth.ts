@@ -16,7 +16,8 @@ export function isDemoEmail(email: string) {
  * Better Auth precisa do binding D1, que só existe durante a requisição,
  * então a instância é criada por requisição (é barata).
  */
-export function createAuth(env: Env) {
+/** `inviteSignup`: cadastro de quem chegou com código de convite válido da casa (passa pelo cadastro fechado). */
+export function createAuth(env: Env, opts: { inviteSignup?: boolean } = {}) {
   const db = getDb(env.DB);
   const tz = env.APP_TIMEZONE || "America/Sao_Paulo";
 
@@ -62,7 +63,7 @@ export function createAuth(env: Env) {
               }
               return { data: { ...user, isDemo: true } };
             }
-            if (env.ALLOW_SIGNUP === "true") return { data: user };
+            if (env.ALLOW_SIGNUP === "true" || opts.inviteSignup) return { data: user };
             // Cadastro fechado: só o primeiro usuário (o dono) pode se cadastrar.
             const [{ n }] = await db
               .select({ n: count() })
@@ -75,7 +76,7 @@ export function createAuth(env: Env) {
           },
           after: async (user) => {
             await seedDefaults(db, user.id, tz);
-            if (isDemoEmail(user.email)) return;
+            if (isDemoEmail(user.email) || opts.inviteSignup) return;
             const [{ n }] = await db
               .select({ n: count() })
               .from(schema.user)

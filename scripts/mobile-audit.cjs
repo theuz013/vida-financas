@@ -7,7 +7,7 @@ const { chromium, devices } = require("playwright");
   await p.goto("http://localhost:5173/entrar"); await p.getByRole("button", { name: "Ver com dados de exemplo" }).click(); await p.waitForURL("http://localhost:5173/"); await p.waitForLoadState("networkidle");
   const acc = await (await p.request.get("http://localhost:5173/api/accounts")).json();
   const card = acc.find((a) => a.kind === "card").id, chk = acc.find((a) => a.kind === "checking").id;
-  const pages = ["/", "/financas", `/financas/conta/${chk}`, `/financas/cartao/${card}`, "/financas/contas", "/financas/lancamentos", "/financas/resumo", "/financas/posso-comprar", "/vida", "/vida/agenda", "/vida/lembretes", "/vida/prazos", "/vida/frentes", "/ajustes"];
+  const pages = ["/", "/financas", `/financas/conta/${chk}`, `/financas/cartao/${card}`, "/financas/contas", "/financas/lancamentos", "/financas/resumo", "/financas/posso-comprar", "/vida", "/vida/agenda", "/vida/lembretes", "/vida/prazos", "/vida/frentes", "/ajustes", "/casa"];
   const small = new Map();
   for (const path of pages) {
     await p.goto("http://localhost:5173" + path); await p.waitForLoadState("networkidle"); await p.waitForTimeout(250);

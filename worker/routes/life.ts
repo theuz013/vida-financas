@@ -1,10 +1,11 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { addDays, daysBetween, monthlyRuleOccursOn, nextMonthlyOccurrence, todayIn } from "../../shared/dates";
 import { cardInvoices, forecast } from "../../shared/finance";
 import { id, schema, type DB } from "../lib/db";
 import { assertOwned, body, deleteOwned, findOwned, refs, router, zDate, zTime } from "../lib/http";
 import { loadFinance } from "./finance";
+import { can, memberNames, membershipOf } from "../lib/household";
 
 export const life = router();
 
@@ -18,7 +19,7 @@ function crud<T extends z.ZodObject>(
   life.get(`/${path}`, async (c) => {
     const { db, userId } = c.var;
     const rows = await (db.query as any)[path].findMany({
-      where: (t: any, { eq }: any) => eq(t.userId, userId),
+      where: (t: any, { eq, and, isNull }: any) => ("householdId" in table ? and(eq(t.userId, userId), isNull(t.householdId)) : eq(t.userId, userId)),
       orderBy: order,
     });
     return c.json(rows);
@@ -40,7 +41,7 @@ function crud<T extends z.ZodObject>(
     await db
       .update(table)
       .set({ ...data, updatedAt: Date.now() } as any)
-      .where(and(eq(table.id, c.req.param("id")), eq(table.userId, userId)));
+      .where(and(eq(table.id, c.req.param("id")), eq(table.userId, userId), ...("householdId" in table ? [isNull((table as typeof schema.tasks).householdId)] : [])));
     return c.json({ ok: true });
   });
   life.delete(`/${path}/:id`, async (c) => {
@@ -125,10 +126,10 @@ export async function buildToday(db: DB, userId: string, tz: string) {
   const tomorrow = addDays(today, 1);
   const fin = await loadFinance(db, userId);
   const [tasks, events, reminders, deadlines, areas] = await Promise.all([
-    db.query.tasks.findMany({ where: (t, { eq, and }) => and(eq(t.userId, userId), eq(t.done, false)) }),
-    db.query.events.findMany({ where: (t, { eq, and, gte, lte }) => and(eq(t.userId, userId), gte(t.date, today), lte(t.date, tomorrow)) }),
+    db.query.tasks.findMany({ where: (t, { eq, and, isNull }) => and(eq(t.userId, userId), isNull(t.householdId), eq(t.done, false)) }),
+    db.query.events.findMany({ where: (t, { eq, and, gte, lte, isNull }) => and(eq(t.userId, userId), isNull(t.householdId), gte(t.date, today), lte(t.date, tomorrow)) }),
     db.query.reminders.findMany({ where: (t, { eq, and }) => and(eq(t.userId, userId), eq(t.active, true)) }),
-    db.query.deadlines.findMany({ where: (t, { eq, and }) => and(eq(t.userId, userId), eq(t.done, false)) }),
+    db.query.deadlines.findMany({ where: (t, { eq, and, isNull }) => and(eq(t.userId, userId), isNull(t.householdId), eq(t.done, false)) }),
     db.query.areas.findMany({ where: (t, { eq }) => eq(t.userId, userId) }),
   ]);
   const areaName = new Map(areas.map((a) => [a.id, a.name]));
@@ -164,6 +165,7 @@ export async function buildToday(db: DB, userId: string, tz: string) {
     .sort((a, b) => a.daysLeft - b.daysLeft);
 
   const fc = forecast({ ...fin, today, nextPayday: fin.settings?.nextPayday ?? null });
+  const house = await houseToday(db, userId, today, tomorrow);
 
   return {
     today,
@@ -185,6 +187,37 @@ export async function buildToday(db: DB, userId: string, tz: string) {
       // sem saldo cadastrado nem lançamento, o cálculo ainda não diz nada
       hasData: fin.accounts.some((a) => a.kind === "checking" && a.openingBalance !== 0) || fin.txs.length > 0,
     },
+    house,
+  };
+}
+
+/** O que a casa tem para hoje, para este membro. */
+export async function houseToday(db: DB, userId: string, today: string, tomorrow: string) {
+  const me = await membershipOf(db, userId);
+  if (!me) return null;
+  const hh = me.householdId;
+  const [house, bills, tasks, events] = await Promise.all([
+    db.query.households.findFirst({ where: (h, { eq }) => eq(h.id, hh) }),
+    can(me, "finance")
+      ? db.query.bills.findMany({ where: (b, { and, eq, lte }) => and(eq(b.householdId, hh), eq(b.status, "pending"), lte(b.dueDate, tomorrow)) })
+      : Promise.resolve([]),
+    db.query.tasks.findMany({
+      where: (t, { and, eq, lte, or, isNull }) =>
+        and(eq(t.householdId, hh), eq(t.done, false), lte(t.dueDate, today), or(isNull(t.assigneeId), eq(t.assigneeId, userId))),
+    }),
+    db.query.events.findMany({ where: (e, { and, eq }) => and(eq(e.householdId, hh), eq(e.date, today)) }),
+  ]);
+  const names = await memberNames(db, hh);
+  return {
+    name: house?.name ?? "Casa",
+    canFinance: can(me, "finance"),
+    bills: {
+      today: bills.filter((b) => b.dueDate === today),
+      overdue: bills.filter((b) => b.dueDate < today),
+      tomorrow: bills.filter((b) => b.dueDate === tomorrow),
+    },
+    tasks: tasks.map((t) => ({ ...t, assigneeName: t.assigneeId ? (names.get(t.assigneeId) ?? null) : null })),
+    events: events.sort((a, b) => (a.time ?? "").localeCompare(b.time ?? "")),
   };
 }
 
@@ -199,8 +232,8 @@ life.get("/pendencias", async (c) => {
   const today = todayIn(tz);
   const [areas, tasks, deadlines] = await Promise.all([
     db.query.areas.findMany({ where: (t, { eq }) => eq(t.userId, userId), orderBy: (t, { asc }) => [asc(t.sort)] }),
-    db.query.tasks.findMany({ where: (t, { eq, and }) => and(eq(t.userId, userId), eq(t.done, false)), orderBy: (t, { asc }) => [asc(t.dueDate)] }),
-    db.query.deadlines.findMany({ where: (t, { eq, and }) => and(eq(t.userId, userId), eq(t.done, false)), orderBy: (t, { asc }) => [asc(t.date)] }),
+    db.query.tasks.findMany({ where: (t, { eq, and, isNull }) => and(eq(t.userId, userId), isNull(t.householdId), eq(t.done, false)), orderBy: (t, { asc }) => [asc(t.dueDate)] }),
+    db.query.deadlines.findMany({ where: (t, { eq, and, isNull }) => and(eq(t.userId, userId), isNull(t.householdId), eq(t.done, false)), orderBy: (t, { asc }) => [asc(t.date)] }),
   ]);
   const group = (areaId: string | null) => {
     const ts = tasks.filter((t) => t.areaId === areaId);

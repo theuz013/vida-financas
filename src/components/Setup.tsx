@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { Card, IconButton, cx } from "./ui";
 
 interface SetupStatus {
+  assistantAvailable: boolean;
   balances: boolean;
   cards: boolean;
   payday: boolean;
@@ -13,7 +14,7 @@ interface SetupStatus {
   assistant: boolean;
 }
 
-const steps: { key: keyof SetupStatus; title: string; hint: string; to: string }[] = [
+const steps: { key: Exclude<keyof SetupStatus, "assistantAvailable">; title: string; hint: string; to: string }[] = [
   { key: "balances", title: "Cadastrar contas e saldos", hint: "Onde o dinheiro está hoje: banco, carteira.", to: "/financas" },
   { key: "cards", title: "Cadastrar cartões", hint: "Com limite, fechamento e vencimento.", to: "/financas" },
   { key: "payday", title: "Informar o próximo salário", hint: "Base do gasto por dia.", to: "/ajustes" },
@@ -34,15 +35,16 @@ export function SetupGuide() {
   });
   const { data } = useQuery({ queryKey: ["setup"], queryFn: () => api<SetupStatus>("/setup"), enabled: !dismissed });
   if (dismissed || !data) return null;
-  const done = steps.filter((s) => data[s.key]).length;
-  if (done === steps.length) return null;
+  const visible = steps.filter((s) => s.key !== "assistant" || data.assistantAvailable);
+  const done = visible.filter((s) => data[s.key]).length;
+  if (done === visible.length) return null;
 
   return (
     <Card className="mt-8 overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-4 pt-4">
         <div>
           <h2 className="text-[17px] font-bold tracking-[-0.01em]">Comece por aqui</h2>
-          <p className="num mt-0.5 text-[13.5px] text-ink-2">{done} de {steps.length} feitos</p>
+          <p className="num mt-0.5 text-[13.5px] text-ink-2">{done} de {visible.length} feitos</p>
         </div>
         <IconButton
           label="Esconder o guia"
@@ -60,7 +62,7 @@ export function SetupGuide() {
         </IconButton>
       </div>
       <ol className="mt-2 divide-y divide-line">
-        {steps.map((s) => {
+        {visible.map((s) => {
           const ok = data[s.key];
           return (
             <li key={s.key}>

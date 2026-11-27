@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
-import { House, ListChecks, Plus, Settings, Wallet } from "lucide-react";
+import { House, ListChecks, Plus, Settings, Users, Wallet } from "lucide-react";
 import { cx } from "./ui";
 import { QuickAdd, type QuickAddPreset } from "./QuickAdd";
 import { PullToRefresh } from "./PullToRefresh";
@@ -16,11 +16,12 @@ const PlusCtx = createContext<(a: PlusAction) => void>(() => {});
  * A tela pede para o + do meio fazer outra coisa (ex.: "Novo compromisso" na Agenda),
  * para a ação principal ficar no alcance do polegar. Volta ao registro rápido ao sair.
  */
-export function usePlusAction(label: string, run: () => void) {
+export function usePlusAction(label: string | null, run: () => void) {
   const set = useContext(PlusCtx);
   const runRef = useRef(run);
   runRef.current = run;
   useEffect(() => {
+    if (!label) return;
     set({ label, run: () => runRef.current() });
     return () => set(null);
   }, [label, set]);
@@ -30,8 +31,10 @@ const items = [
   { to: "/", label: "Hoje", icon: House, end: true },
   { to: "/financas", label: "Finanças", icon: Wallet },
   { to: "/vida", label: "Vida", icon: ListChecks },
-  { to: "/ajustes", label: "Ajustes", icon: Settings },
+  { to: "/casa", label: "Casa", icon: Users },
 ];
+/** No computador, Ajustes fica no menu lateral; no celular, no botão de engrenagem da tela Hoje. */
+const desktopItems = [...items, { to: "/ajustes", label: "Ajustes", icon: Settings, end: false }];
 
 export function Layout() {
   const [preset, setPreset] = useState<QuickAddPreset | null>(null);
@@ -47,7 +50,7 @@ export function Layout() {
         <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-line bg-sunken/50 px-3 py-6 md:flex">
           <div className="px-3 pb-6 text-[17px] font-extrabold tracking-[-0.02em]">Vida &amp; Finanças</div>
           <nav className="flex flex-col gap-0.5">
-            {items.map((it) => (
+            {desktopItems.map((it) => (
               <NavLink
                 key={it.to}
                 to={it.to}

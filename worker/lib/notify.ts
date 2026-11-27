@@ -5,6 +5,7 @@ import { id, schema, type DB } from "./db";
 import { sendPush, type PushNote } from "./push";
 import { buildToday } from "../routes/life";
 import { loadFinance } from "../routes/finance";
+import { membershipOf } from "./household";
 
 /** Hora local em que sai o resumo do dia. */
 const DIGEST_HOUR = "08";
@@ -38,6 +39,15 @@ export async function digestFor(db: DB, userId: string, tz: string): Promise<Pus
   for (const r of t.reminders.tomorrow) lines.push(`Amanhã: ${r.title}`);
   for (const d of t.deadlines.slice(0, 3)) {
     lines.push(d.daysLeft < 0 ? `Prazo vencido: ${d.title}` : d.daysLeft === 0 ? `Prazo hoje: ${d.title}` : `${d.title} em ${plural(d.daysLeft, "dia", "dias")}`);
+  }
+
+  // casa
+  if (t.house) {
+    const hb = [...t.house.bills.overdue, ...t.house.bills.today];
+    if (hb.length) lines.push(`Casa: ${hb.map((b) => b.name).join(", ")} ${hb.some((b) => b.dueDate < t.today) ? "(há vencida)" : "vence hoje"}`);
+    if (t.house.bills.tomorrow.length) lines.push(`Casa, amanhã: ${t.house.bills.tomorrow.map((b) => b.name).join(", ")}`);
+    if (t.house.tasks.length) lines.push(`Casa: ${plural(t.house.tasks.length, "tarefa", "tarefas")} para hoje`);
+    for (const e of t.house.events) lines.push(`Casa: ${e.time ? e.time + " " : ""}${e.title}`);
   }
 
   // limite do mês
@@ -76,20 +86,32 @@ export async function runNotifications(env: Env, db: DB, now = new Date()) {
 
     // compromissos com lembrete: avisa quando faltar remindMinutes (janela de 15 min do cron)
     const nowMin = toMinutes(hhmm);
+    const membership = await membershipOf(db, u.id);
     const events = await db.query.events.findMany({
-      where: (e, { eq, and }) => and(eq(e.userId, u.id), eq(e.date, today)),
+      where: (e, { eq, and, or, isNull }) =>
+        and(
+          eq(e.date, today),
+          membership
+            ? or(and(eq(e.userId, u.id), isNull(e.householdId)), eq(e.householdId, membership.householdId))
+            : and(eq(e.userId, u.id), isNull(e.householdId)),
+        ),
     });
     for (const e of events) {
       if (e.remindMinutes == null || !e.time) continue;
       const at = toMinutes(e.time) - e.remindMinutes;
       if (nowMin >= at && nowMin <= toMinutes(e.time) && (await once(db, u.id, `event:${e.id}:${today}`))) {
-        await sendPush(env, db, u.id, { title: e.title, body: `Às ${e.time}${e.location ? ` · ${e.location}` : ""}`, url: "/vida/agenda", tag: `event-${e.id}` });
+        await sendPush(env, db, u.id, {
+          title: e.householdId ? `Casa: ${e.title}` : e.title,
+          body: `Às ${e.time}${e.location ? ` · ${e.location}` : ""}`,
+          url: e.householdId ? "/casa/agenda" : "/vida/agenda",
+          tag: `event-${e.id}`,
+        });
       }
     }
 
     // tarefas com lembrete em horário exato
     const tasks = await db.query.tasks.findMany({
-      where: (t, { eq, and, lte, isNotNull }) => and(eq(t.userId, u.id), eq(t.done, false), isNotNull(t.remindAt), lte(t.remindAt, now.getTime())),
+      where: (t, { eq, and, lte, isNotNull, isNull }) => and(eq(t.userId, u.id), isNull(t.householdId), eq(t.done, false), isNotNull(t.remindAt), lte(t.remindAt, now.getTime())),
     });
     for (const t of tasks) {
       if (await once(db, u.id, `task:${t.id}:${t.remindAt}`)) {

@@ -13,6 +13,8 @@ export function SettingsPage() {
   const { data: me } = useMe();
   const { data: settings } = useSettings();
   const [paydayOpen, setPaydayOpen] = useState(false);
+  // a integração com o assistente (WhatsApp) é só do dono; a família não usa
+  const { data: setup } = useQuery({ queryKey: ["setup"], queryFn: () => api<{ assistantAvailable: boolean }>("/setup") });
   const [deleteOpen, setDeleteOpen] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
@@ -25,7 +27,7 @@ export function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Ajustes" subtitle={me ? `${me.name} · ${me.email}` : undefined} />
+      <PageHeader title="Ajustes" back="/" subtitle={me ? `${me.name} · ${me.email}` : undefined} />
 
       <Section title="Dinheiro">
         <List>
@@ -42,7 +44,7 @@ export function SettingsPage() {
       <PushSection />
       <CategoriesSection />
       <AreasSection />
-      <ApiKeysSection />
+      {setup?.assistantAvailable ? <ApiKeysSection /> : null}
 
       <Section title="Seus dados">
         <List>

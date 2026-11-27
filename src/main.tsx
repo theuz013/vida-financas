@@ -13,6 +13,7 @@ import { AccountPage, BillsPage, CanBuyPage, CardPage, SummaryPage, Transactions
 import { AgendaPage, AreasPage, DeadlinesPage, LifeLayout, RemindersPage, TasksPage } from "@/pages/Life";
 import { PrivacyPage, SettingsPage } from "@/pages/Settings";
 import { LoginPage } from "@/pages/Login";
+import { HouseAgendaPage, HouseBillsPage, HouseIndex, HouseLayout, HouseMembersPage, HouseShoppingPage, HouseTasksPage } from "@/pages/House";
 
 function RequireAuth() {
   const { data: me, isLoading, error } = useMe();
@@ -64,6 +65,18 @@ const router = createBrowserRouter([
               { path: "lembretes", element: <RemindersPage /> },
               { path: "prazos", element: <DeadlinesPage /> },
               { path: "frentes", element: <AreasPage /> },
+            ],
+          },
+          {
+            path: "casa",
+            element: <HouseLayout />,
+            children: [
+              { index: true, element: <HouseIndex /> },
+              { path: "contas", element: <HouseBillsPage /> },
+              { path: "tarefas", element: <HouseTasksPage /> },
+              { path: "agenda", element: <HouseAgendaPage /> },
+              { path: "compras", element: <HouseShoppingPage /> },
+              { path: "membros", element: <HouseMembersPage /> },
             ],
           },
           { path: "ajustes", element: <SettingsPage /> },

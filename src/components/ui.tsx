@@ -204,7 +204,7 @@ export function Field({ label, hint, children, className }: { label: string; hin
 const control =
   "h-12 w-full rounded-xl border border-line bg-surface px-3.5 text-[16px] text-ink outline-none transition-colors focus:border-ink-2 disabled:opacity-60";
 
-export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, ...rest }: InputHTMLAttributes<HTMLInputElement> & { ref?: React.Ref<HTMLInputElement> }) {
   return <input {...rest} className={cx(control, className)} />;
 }
 

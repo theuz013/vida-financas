@@ -135,6 +135,7 @@ export interface TodayData {
   reminders: { today: Reminder[]; tomorrow: Reminder[] };
   deadlines: (Deadline & { daysLeft: number })[];
   money: { perDay: number; free: number; payday: string; paydayAssumed: boolean; days: number; hasData: boolean };
+  house: HouseToday | null;
 }
 export interface Summary {
   month: string;
@@ -199,3 +200,65 @@ export function useAction<V = void, R = unknown>(fn: (v: V) => Promise<R>) {
     onSuccess: () => qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "me" }),
   });
 }
+
+/* ---------- casa (vertente familiar) ---------- */
+
+export interface HouseMember {
+  id: string;
+  userId: string;
+  name: string;
+  email?: string;
+  role: "admin" | "member";
+  isChild: boolean;
+  canFinance: boolean;
+  canCreateTasks: boolean;
+  canShopping: boolean;
+  permissions: { finance: boolean; createTasks: boolean; shopping: boolean };
+}
+export interface HouseData {
+  household: { id: string; name: string } | null;
+  me?: HouseMember;
+  members?: HouseMember[];
+  invite?: { code: string; expiresAt: number } | null;
+}
+export interface HouseBill extends Bill {
+  householdId: string;
+  paidBy: string | null;
+  paidByName: string | null;
+}
+export interface HouseTask extends Task {
+  assigneeId: string | null;
+  assigneeName: string | null;
+}
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: string | null;
+  checked: boolean;
+  addedBy: string | null;
+  addedByName: string | null;
+}
+export interface HouseSummary {
+  month: string;
+  total: number;
+  paid: number;
+  pending: number;
+  unknown: number;
+  byMember: { userId: string; name: string; total: number }[];
+}
+export interface HouseToday {
+  name: string;
+  canFinance: boolean;
+  bills: { today: Bill[]; overdue: Bill[]; tomorrow: Bill[] };
+  tasks: HouseTask[];
+  events: CalEvent[];
+}
+
+export const useHouse = () => useQuery({ queryKey: ["household"], queryFn: () => api<HouseData>("/household") });
+export const useHouseBills = (status: "pending" | "paid", enabled = true) =>
+  useQuery({ queryKey: ["household", "bills", status], queryFn: () => api<HouseBill[]>(`/household/bills?status=${status}`), enabled });
+export const useHouseSummary = (enabled = true) =>
+  useQuery({ queryKey: ["household", "summary"], queryFn: () => api<HouseSummary>("/household/bills/summary"), enabled });
+export const useHouseTasks = () => useQuery({ queryKey: ["household", "tasks"], queryFn: () => api<HouseTask[]>("/household/tasks") });
+export const useHouseEvents = () => useQuery({ queryKey: ["household", "events"], queryFn: () => api<CalEvent[]>("/household/events") });
+export const useShopping = () => useQuery({ queryKey: ["household", "shopping"], queryFn: () => api<ShoppingItem[]>("/household/shopping") });

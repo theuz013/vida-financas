@@ -9,6 +9,9 @@ import { account } from "./routes/account";
 import { finance } from "./routes/finance";
 import { integration } from "./routes/integration";
 import { life } from "./routes/life";
+import { findInvite, household, joinHousehold, notifyAdmins } from "./routes/household";
+import { z } from "zod";
+import { body } from "./lib/http";
 
 const app = new Hono<AppEnv>().basePath("/api");
 
@@ -47,6 +50,29 @@ app.post("/demo", async (c) => {
   return res;
 });
 
+/**
+ * Criar conta com código de convite da casa. O código é validado antes de criar a
+ * conta; a pessoa já entra na casa como membro e fica logada.
+ */
+app.post("/household/signup", async (c) => {
+  const input = await body(
+    c,
+    z.object({ code: z.string(), name: z.string().trim().min(1).max(60), email: z.string().email(), password: z.string().min(8).max(128) }),
+  );
+  const db = getDb(c.env.DB);
+  const inv = await findInvite(db, input.code);
+  const res = await createAuth(c.env, { inviteSignup: true }).api.signUpEmail({
+    body: { name: input.name, email: input.email, password: input.password },
+    asResponse: true,
+    headers: c.req.raw.headers,
+  });
+  if (!res.ok) return res;
+  const data = (await res.clone().json()) as { user: { id: string } };
+  await joinHousehold(db, data.user.id, inv.householdId);
+  await notifyAdmins(c.env, db, inv.householdId, data.user.id);
+  return res;
+});
+
 /** Sessão atual (sem erro quando não há login: o app só decide para onde ir). */
 app.get("/me", async (c) => {
   const session = await createAuth(c.env).api.getSession({ headers: c.req.raw.headers });
@@ -71,6 +97,7 @@ authed.use("*", async (c, next) => {
 authed.route("/", finance);
 authed.route("/", life);
 authed.route("/", account);
+authed.route("/", household);
 app.route("/", authed);
 
 app.all("*", (c) => c.json({ error: "Rota não encontrada." }, 404));
