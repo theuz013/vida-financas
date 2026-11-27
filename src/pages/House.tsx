@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { SectionTabs } from "@/components/ui";
 import { Navigate, NavLink, Outlet, useNavigate, useOutletContext } from "react-router";
 import { Check, Clock, Copy, Repeat, Share2, ShieldCheck, UserRound } from "lucide-react";
 import {
@@ -63,7 +64,7 @@ export function HouseLayout() {
   return (
     <div>
       <PageHeader title={data.household.name} subtitle={`${ctx.members.length} ${ctx.members.length === 1 ? "pessoa" : "pessoas"} · você é ${data.me.role === "admin" ? "administrador" : "membro"}`} />
-      <nav className="sticky top-[env(safe-area-inset-top)] z-10 -mx-4 mb-5 flex snap-x gap-1.5 overflow-x-auto overscroll-x-contain bg-bg px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:static md:mx-0 md:px-0" aria-label="Seções da casa">
+      <SectionTabs label="Seções da casa">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
@@ -75,7 +76,7 @@ export function HouseLayout() {
             {t.label}
           </NavLink>
         ))}
-      </nav>
+      </SectionTabs>
       <Outlet context={ctx} />
     </div>
   );

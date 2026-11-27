@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { SectionTabs } from "@/components/ui";
 import { NavLink, Outlet } from "react-router";
 import { Clock, Hourglass, Plus, Repeat } from "lucide-react";
 import { nextMonthlyOccurrence } from "@shared/dates";
@@ -20,7 +21,7 @@ export function LifeLayout() {
   return (
     <div>
       <PageHeader title="Vida" />
-      <nav className="sticky top-[env(safe-area-inset-top)] z-10 -mx-4 mb-5 flex snap-x gap-1.5 overflow-x-auto overscroll-x-contain bg-bg px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:static md:mx-0 md:px-0" aria-label="Seções">
+      <SectionTabs label="Seções">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
@@ -33,7 +34,7 @@ export function LifeLayout() {
             {t.label}
           </NavLink>
         ))}
-      </nav>
+      </SectionTabs>
       <Outlet />
     </div>
   );

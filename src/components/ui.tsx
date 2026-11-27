@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { Link } from "react-router";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { formatBRL } from "@/lib/format";
@@ -359,4 +359,55 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
 /** Confirmação curta antes de algo que não dá para desfazer. */
 export function useConfirm() {
   return (message: string) => window.confirm(message);
+}
+
+/**
+ * Menu de seções (Contas, Tarefas, Agenda...). No celular, ele rola junto com a página
+ * até chegar no topo e então fica fixo, só rolando de lado. Não usa `sticky`, porque o
+ * Safari do iPhone move o sticky ao puxar a página. No computador é um menu comum.
+ */
+export function SectionTabs({ label, children }: { label: string; children: ReactNode }) {
+  const holder = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLElement>(null);
+  const [pinned, setPinned] = useState(false);
+  const [h, setH] = useState(0);
+
+  useLayoutEffect(() => {
+    const measure = () => bar.current && setH(bar.current.offsetHeight + 20);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const isMobile = window.innerWidth < 768;
+      const top = holder.current?.getBoundingClientRect().top ?? 1;
+      setPinned(isMobile && top <= 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  return (
+    <>
+      {/* ocupa o espaço do menu quando ele está fixo, para a página não pular */}
+      <div ref={holder} aria-hidden style={{ height: pinned ? h : 0 }} />
+      <nav
+        ref={bar}
+        aria-label={label}
+        className={cx(
+          "z-10 flex gap-1.5 overflow-x-auto overscroll-x-contain bg-bg px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          pinned ? "fixed inset-x-0 top-[env(safe-area-inset-top)]" : "-mx-4 mb-5 md:mx-0 md:px-0",
+        )}
+      >
+        {children}
+      </nav>
+    </>
+  );
 }
