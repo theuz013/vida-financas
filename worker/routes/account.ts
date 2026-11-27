@@ -41,6 +41,28 @@ account.patch("/settings", async (c) => {
   return c.json({ ok: true });
 });
 
+/* ---------- primeiro uso ---------- */
+
+/** O que ainda falta configurar (guia "Comece por aqui" na tela Hoje). */
+account.get("/setup", async (c) => {
+  const { db, userId } = c.var;
+  const [accounts, settings, push, keys, txCount] = await Promise.all([
+    db.query.accounts.findMany({ where: (t, { eq }) => eq(t.userId, userId) }),
+    db.query.settings.findFirst({ where: (t, { eq }) => eq(t.userId, userId) }),
+    db.query.pushSubscriptions.findFirst({ where: (t, { eq }) => eq(t.userId, userId), columns: { id: true } }),
+    db.query.apiKeys.findFirst({ where: (t, { eq }) => eq(t.userId, userId), columns: { id: true } }),
+    db.query.transactions.findFirst({ where: (t, { eq }) => eq(t.userId, userId), columns: { id: true } }),
+  ]);
+  const checking = accounts.filter((a) => a.kind === "checking" && !a.archived);
+  return c.json({
+    balances: checking.some((a) => a.openingBalance !== 0) || Boolean(txCount),
+    cards: accounts.some((a) => a.kind === "card"),
+    payday: Boolean(settings?.nextPayday),
+    notifications: Boolean(push),
+    assistant: Boolean(keys),
+  });
+});
+
 /* ---------- chaves da API (assistente Pelúcio) ---------- */
 
 account.get("/keys", async (c) => {

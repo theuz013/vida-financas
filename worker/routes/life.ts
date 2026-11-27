@@ -176,7 +176,15 @@ export async function buildToday(db: DB, userId: string, tz: string) {
     },
     reminders: { today: remindersToday, tomorrow: remindersTomorrow },
     deadlines: deadlinesAlert,
-    money: { perDay: fc.perDay, free: fc.free, payday: fc.payday, paydayAssumed: fc.paydayAssumed, days: fc.days },
+    money: {
+      perDay: fc.perDay,
+      free: fc.free,
+      payday: fc.payday,
+      paydayAssumed: fc.paydayAssumed,
+      days: fc.days,
+      // sem saldo cadastrado nem lançamento, o cálculo ainda não diz nada
+      hasData: fin.accounts.some((a) => a.kind === "checking" && a.openingBalance !== 0) || fin.txs.length > 0,
+    },
   };
 }
 

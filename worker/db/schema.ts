@@ -171,6 +171,8 @@ export const bills = sqliteTable(
     status: text("status", { enum: ["pending", "paid"] }).notNull().default("pending"),
     paidAt: integer("paid_at"),
     source: text("source", { enum: ["manual", "whatsapp", "import"] }).notNull().default("manual"),
+    /** Conta recorrente: a ocorrência anterior que gerou esta (para desfazer o pagamento). */
+    previousBillId: text("previous_bill_id"),
     ...timestamps,
   },
   (t) => [index("bills_user_due").on(t.userId, t.dueDate)],

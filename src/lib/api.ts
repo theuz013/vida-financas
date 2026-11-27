@@ -134,7 +134,7 @@ export interface TodayData {
   events: { today: CalEvent[]; tomorrow: CalEvent[] };
   reminders: { today: Reminder[]; tomorrow: Reminder[] };
   deadlines: (Deadline & { daysLeft: number })[];
-  money: { perDay: number; free: number; payday: string; paydayAssumed: boolean; days: number };
+  money: { perDay: number; free: number; payday: string; paydayAssumed: boolean; days: number; hasData: boolean };
 }
 export interface Summary {
   month: string;
@@ -177,6 +177,8 @@ export const useCategories = () => useQuery({ queryKey: ["categories"], queryFn:
 export const useAreas = () => useQuery({ queryKey: ["areas"], queryFn: () => api<Area[]>("/areas") });
 export const useTransactions = (month: string) =>
   useQuery({ queryKey: ["transactions", month], queryFn: () => api<Transaction[]>(`/transactions?month=${month}`) });
+export const useAccountTransactions = (accountId: string) =>
+  useQuery({ queryKey: ["transactions", "account", accountId], queryFn: () => api<Transaction[]>(`/transactions?accountId=${accountId}`) });
 export const useBills = (status: "pending" | "paid") =>
   useQuery({ queryKey: ["bills", status], queryFn: () => api<Bill[]>(`/bills?status=${status}`) });
 export const useForecast = () => useQuery({ queryKey: ["forecast"], queryFn: () => api<Forecast>("/forecast") });

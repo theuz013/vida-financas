@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { ArrowDownLeft, ArrowLeftRight, ChevronLeft, ChevronRight, MessageCircle, Plus, Repeat } from "lucide-react";
 import { addMonths } from "@shared/dates";
@@ -11,7 +11,9 @@ import {
   useInvoices,
   useSummary,
   useTransactions,
+  useAccountTransactions,
   type Bill,
+  type Transaction,
   type CanBuyOption,
   type Forecast,
   type InvoiceDetail,
@@ -42,6 +44,7 @@ import {
 } from "@/components/ui";
 import { PayBill } from "@/components/PayBill";
 import { useQuickAdd } from "@/components/Layout";
+import { AccountSheet } from "./Finance";
 
 function useMonth() {
   const [month, setMonth] = useState(localToday().slice(0, 7));
@@ -61,66 +64,128 @@ function MonthSwitch({ month, shift }: { month: string; shift: (n: number) => vo
 
 /* ===================== Lançamentos ===================== */
 
+type TxFilter = "all" | "expense" | "income" | "transfer";
+
 export function TransactionsPage() {
   const { month, shift } = useMonth();
   const { data: txs, isLoading } = useTransactions(month);
-  const { data: cats = [] } = useCategories();
-  const { data: accounts = [] } = useAccounts();
   const quickAdd = useQuickAdd();
-  const catById = new Map(cats.map((c) => [c.id, c]));
-  const accById = new Map(accounts.map((a) => [a.id, a]));
-
-  const byDay = useMemo(() => {
-    const m = new Map<string, NonNullable<typeof txs>>();
-    for (const t of txs ?? []) m.set(t.date, [...(m.get(t.date) ?? []), t]);
-    return [...m.entries()];
-  }, [txs]);
+  const { data: cats = [] } = useCategories();
+  const [q, setQ] = useState("");
+  const [type, setType] = useState<TxFilter>("all");
+  const catName = new Map(cats.map((c) => [c.id, c.name]));
+  const term = norm(q);
+  const filtered = (txs ?? []).filter(
+    (t) => (type === "all" || t.type === type) && (!term || norm(t.description).includes(term) || norm(catName.get(t.categoryId ?? "") ?? "").includes(term)),
+  );
+  const total = filtered.reduce((s, t) => s + (t.type === "expense" ? -t.amount : t.type === "income" ? t.amount : 0), 0);
 
   return (
     <div>
       <PageHeader title="Lançamentos" back="/financas" action={<Button size="sm" onClick={() => quickAdd()}><Plus className="size-4" />Registrar</Button>} />
       <div className="mb-4 flex justify-center"><MonthSwitch month={month} shift={shift} /></div>
-      {isLoading ? <Skeleton className="h-60" /> : byDay.length === 0 ? (
-        <Empty title="Nenhum lançamento neste mês." hint="Registre gastos e receitas pelo +, ou peça ao assistente no WhatsApp." />
+      <div className="mb-5 space-y-2.5">
+        <Input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar por descrição ou categoria" aria-label="Buscar lançamentos" />
+        <Segmented value={type} onChange={setType} options={[{ value: "all", label: "Todos" }, { value: "expense", label: "Gastos" }, { value: "income", label: "Receitas" }, { value: "transfer", label: "Transf." }]} />
+        {(q || type !== "all") && filtered.length ? (
+          <p className="num px-1 text-[13.5px] text-ink-2">{filtered.length} {filtered.length === 1 ? "lançamento" : "lançamentos"}{type !== "transfer" ? ` · ${total < 0 ? "−" : "+"} ${formatBRL(Math.abs(total))}` : ""}</p>
+        ) : null}
+      </div>
+      {isLoading ? <Skeleton className="h-60" /> : filtered.length === 0 ? (
+        txs?.length ? <Empty title="Nada encontrado." hint="Tente outra palavra ou outro filtro." /> : <Empty title="Nenhum lançamento neste mês." hint="Registre gastos e receitas pelo +, ou peça ao assistente no WhatsApp." />
       ) : (
-        byDay.map(([day, list]) => (
-          <Section key={day} title={relativeDay(day) === "hoje" ? "Hoje" : relativeDay(day) === "ontem" ? "Ontem" : shortDate(day)}>
-            <List>
-              {list.map((t) => {
-                const cat = t.categoryId ? catById.get(t.categoryId) : undefined;
-                const acc = accById.get(t.accountId);
-                const sub = [
-                  t.type === "transfer" ? `${acc?.name ?? ""} → ${accById.get(t.toAccountId ?? "")?.name ?? ""}` : acc?.name,
-                  t.installmentsTotal > 1 ? `${t.installmentsTotal}×` : null,
-                ].filter(Boolean).join(" · ");
-                return (
-                  <Row
-                    key={t.id}
-                    onClick={() => quickAdd({ edit: t })}
-                    leading={
-                      t.type === "transfer" ? <IconBubble><ArrowLeftRight /></IconBubble> : cat ? <Emoji>{cat.emoji}</Emoji> : <IconBubble><ArrowDownLeft /></IconBubble>
-                    }
-                    title={
-                      <span className="inline-flex items-center gap-1.5">
-                        {t.description}
-                        {t.source === "whatsapp" ? <MessageCircle className="size-3.5 text-ink-3" aria-label="Registrado pelo assistente" /> : null}
-                      </span>
-                    }
-                    subtitle={sub}
-                    trailing={
-                      <Money
-                        cents={t.type === "expense" ? -t.amount : t.amount}
-                        signed={t.type === "income"}
-                        className={cx("text-[15px] font-semibold", t.type === "income" && "text-good", t.type === "transfer" && "text-ink-2")}
-                      />
-                    }
-                  />
-                );
-              })}
-            </List>
-          </Section>
-        ))
+        <TxList txs={filtered} />
       )}
+    </div>
+  );
+}
+
+function norm(s: string) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+/** Lançamentos agrupados por dia. Tocar abre a edição. */
+export function TxList({ txs, accountId }: { txs: Transaction[]; accountId?: string }) {
+  const { data: cats = [] } = useCategories();
+  const { data: accounts = [] } = useAccounts();
+  const quickAdd = useQuickAdd();
+  const catById = new Map(cats.map((c) => [c.id, c]));
+  const accById = new Map(accounts.map((a) => [a.id, a]));
+  const byDay = new Map<string, Transaction[]>();
+  for (const t of txs) byDay.set(t.date, [...(byDay.get(t.date) ?? []), t]);
+
+  return (
+    <>
+      {[...byDay.entries()].map(([day, list]) => (
+        <Section key={day} title={relativeDay(day) === "hoje" ? "Hoje" : relativeDay(day) === "ontem" ? "Ontem" : shortDate(day)}>
+          <List>
+            {list.map((t) => {
+              const cat = t.categoryId ? catById.get(t.categoryId) : undefined;
+              const acc = accById.get(t.accountId);
+              const incoming = t.type === "transfer" && accountId && t.toAccountId === accountId;
+              const sub = [
+                t.type === "transfer" ? `${acc?.name ?? ""} → ${accById.get(t.toAccountId ?? "")?.name ?? ""}` : accountId ? cat?.name : acc?.name,
+                t.installmentsTotal > 1 ? (t.installmentCurrent > 1 ? `parcela ${t.installmentCurrent} de ${t.installmentsTotal}` : `${t.installmentsTotal}×`) : null,
+              ].filter(Boolean).join(" · ");
+              const signed = t.type === "expense" ? -t.amount : t.type === "income" ? t.amount : accountId ? (incoming ? t.amount : -t.amount) : t.amount;
+              return (
+                <Row
+                  key={t.id}
+                  onClick={() => quickAdd({ edit: t })}
+                  leading={t.type === "transfer" ? <IconBubble><ArrowLeftRight /></IconBubble> : cat ? <Emoji>{cat.emoji}</Emoji> : <IconBubble><ArrowDownLeft /></IconBubble>}
+                  title={
+                    <span className="inline-flex max-w-full items-center gap-1.5">
+                      <span className="truncate">{t.description}</span>
+                      {t.source === "whatsapp" ? <MessageCircle className="size-3.5 shrink-0 text-ink-3" aria-label="Registrado pelo assistente" /> : null}
+                    </span>
+                  }
+                  subtitle={sub || undefined}
+                  trailing={
+                    <Money
+                      cents={signed}
+                      signed={signed > 0}
+                      className={cx("text-[15px] font-semibold", t.type === "income" && "text-good", t.type === "transfer" && "text-ink-2")}
+                    />
+                  }
+                />
+              );
+            })}
+          </List>
+        </Section>
+      ))}
+    </>
+  );
+}
+
+/* ===================== Conta (detalhe) ===================== */
+
+export function AccountPage() {
+  const { id = "" } = useParams();
+  const { data: accounts, isLoading } = useAccounts();
+  const { data: txs } = useAccountTransactions(id);
+  const quickAdd = useQuickAdd();
+  const [editing, setEditing] = useState(false);
+  const account = accounts?.find((a) => a.id === id);
+  if (isLoading) return <Skeleton className="h-60" />;
+  if (!account) return <Empty title="Conta não encontrada." />;
+  return (
+    <div>
+      <PageHeader
+        title={account.name}
+        subtitle={<>Saldo: <Money cents={account.balance ?? 0} className={cx("font-semibold text-ink", (account.balance ?? 0) < 0 && "text-bad")} /></>}
+        back="/financas"
+        action={<Button size="sm" variant="secondary" onClick={() => setEditing(true)}>Editar</Button>}
+      />
+      <div className="mb-2 grid grid-cols-2 gap-2">
+        <Button variant="secondary" onClick={() => quickAdd({ mode: "expense", accountId: id })}>Gasto</Button>
+        <Button variant="secondary" onClick={() => quickAdd({ mode: "income", accountId: id })}>Receita</Button>
+      </div>
+      {!txs ? <Skeleton className="mt-6 h-40" /> : txs.length === 0 ? (
+        <div className="mt-6"><Empty title="Nenhum lançamento nesta conta." /></div>
+      ) : (
+        <div className="mt-6"><TxList txs={txs} accountId={id} /></div>
+      )}
+      <AccountSheet value={editing ? account : null} onClose={() => setEditing(false)} />
     </div>
   );
 }
@@ -195,6 +260,7 @@ function BillSheet({ value, onClose, onPay }: { value: Bill | "new" | null; onCl
     return bill ? api(`/bills/${bill.id}`, { method: "PATCH", body }) : api("/bills", { body });
   });
   const remove = useAction(() => api(`/bills/${bill!.id}`, { method: "DELETE" }));
+  const unpay = useAction(() => api(`/bills/${bill!.id}/unpay`, { body: {} }));
 
   return (
     <Sheet
@@ -205,6 +271,11 @@ function BillSheet({ value, onClose, onPay }: { value: Bill | "new" | null; onCl
         <div className="flex flex-wrap gap-2">
           {bill ? <Button variant="danger" loading={remove.isPending} onClick={() => window.confirm("Apagar esta conta?") && remove.mutate(undefined, { onSuccess: onClose })}>Apagar</Button> : null}
           {bill?.status === "pending" ? <Button variant="secondary" onClick={() => onPay(bill)}>Pagar</Button> : null}
+          {bill?.status === "paid" ? (
+            <Button variant="secondary" loading={unpay.isPending} onClick={() => unpay.mutate(undefined, { onSuccess: onClose })}>
+              Desfazer pagamento
+            </Button>
+          ) : null}
           <Button size="lg" className="min-w-40 flex-1" loading={save.isPending} onClick={() => save.mutate(undefined, { onSuccess: onClose })}>Salvar</Button>
         </div>
       }
@@ -242,7 +313,7 @@ function BillSheet({ value, onClose, onPay }: { value: Bill | "new" | null; onCl
             </Select>
           </Field>
         </div>
-        <ErrorNote error={save.error ?? remove.error} />
+        <ErrorNote error={save.error ?? remove.error ?? unpay.error} />
       </div>
     </Sheet>
   );

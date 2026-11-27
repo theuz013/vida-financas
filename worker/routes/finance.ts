@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, lte, or } from "drizzle-orm";
 import { z } from "zod";
 import { monthKey, monthRange, todayIn } from "../../shared/dates";
 import {
@@ -213,7 +213,7 @@ finance.get("/transactions", async (c) => {
     const { start, end } = monthRange(month);
     conds.push(gte(schema.transactions.date, start), lte(schema.transactions.date, end));
   }
-  if (accountId) conds.push(eq(schema.transactions.accountId, accountId));
+  if (accountId) conds.push(or(eq(schema.transactions.accountId, accountId), eq(schema.transactions.toAccountId, accountId))!);
   const rows = await db
     .select()
     .from(schema.transactions)
@@ -364,10 +364,34 @@ finance.post("/bills/:id/pay", async (c) => {
       recurrence: bill.recurrence,
       accountId,
       categoryId: bill.categoryId,
+      previousBillId: bill.id,
     };
     await db.insert(schema.bills).values(next);
   }
   return c.json({ transaction: tx, next });
+});
+
+/**
+ * Desfazer pagamento: apaga o gasto lançado, volta a conta para "a pagar" e
+ * remove a próxima ocorrência criada automaticamente (se ainda não foi paga).
+ */
+finance.post("/bills/:id/unpay", async (c) => {
+  const { db, userId } = c.var;
+  const bill = await findOwned(db, schema.bills, userId, c.req.param("id"));
+  if (bill.status !== "paid") bad("Esta conta não está paga.", 409);
+  const next = await db.query.bills.findFirst({
+    where: (b, { and, eq }) => and(eq(b.userId, userId), eq(b.previousBillId, bill.id)),
+  });
+  if (next?.status === "paid") bad("A conta do período seguinte já foi paga. Desfaça aquela primeiro.", 409);
+  if (next) await deleteOwned(db, schema.bills, userId, [next.id]);
+  await db
+    .delete(schema.transactions)
+    .where(and(eq(schema.transactions.userId, userId), eq(schema.transactions.billId, bill.id)));
+  await db
+    .update(schema.bills)
+    .set({ status: "pending", paidAt: null, updatedAt: Date.now() })
+    .where(eq(schema.bills.id, bill.id));
+  return c.json({ ok: true });
 });
 
 /* ===================== Cálculos ===================== */

@@ -14,6 +14,7 @@ colors:
   bad: "oklch(0.55 0.19 27)"
   good: "oklch(0.52 0.12 152)"
   warn: "oklch(0.58 0.13 70)"
+  scrim: "oklch(0.15 0 0 / 0.45)"
 typography:
   family: "Inter Variable"
   title: { size: 30px, weight: 800, tracking: -0.03em }
@@ -42,6 +43,7 @@ Cor só quando significa algo:
 | `good` / `good-soft` | pago, cabe, receita, tarefa concluída |
 | `warn` / `warn-soft` | vence hoje, aperta, prioridade alta, prazo perto, valor a confirmar |
 | `accent` | ação principal e item selecionado |
+| `scrim` | fundo escurecido atrás das folhas e janelas |
 
 Todo o resto é cinza (`ink`, `ink-2`, `ink-3`, `sunken`, `line`).
 

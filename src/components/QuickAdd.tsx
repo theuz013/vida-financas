@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { api, useAccounts, useAction, useAreas, useCategories, type Transaction } from "@/lib/api";
 import { localToday, parseBRL, centsToInput } from "@/lib/format";
 import { Button, ErrorNote, Field, Input, MoneyInput, Select, Sheet, cx } from "./ui";
+import { useToast } from "./Toast";
+import { formatBRL } from "@/lib/format";
 
 export interface QuickAddPreset {
   mode?: Mode;
@@ -29,6 +31,7 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
   const [toAccountId, setToAccountId] = useState("");
   const [date, setDate] = useState(localToday());
   const [installments, setInstallments] = useState(1);
+  const [current, setCurrent] = useState(1);
   const [areaId, setAreaId] = useState("");
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
   const [formError, setFormError] = useState<string | null>(null);
@@ -51,6 +54,7 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
       setToAccountId(t.toAccountId ?? "");
       setDate(t.date);
       setInstallments(t.installmentsTotal);
+      setCurrent(t.installmentCurrent);
     } else {
       setMode(preset.mode ?? "expense");
       setAmount("");
@@ -60,6 +64,7 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
       setToAccountId("");
       setDate(localToday());
       setInstallments(1);
+      setCurrent(1);
       setAreaId("");
       setPriority("normal");
     }
@@ -94,10 +99,13 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
       toAccountId: mode === "transfer" ? toAccountId : null,
       date,
       installmentsTotal: mode === "expense" && isCard ? installments : 1,
+      installmentCurrent: mode === "expense" && isCard ? Math.min(current, installments) : 1,
     };
     if (mode === "transfer" && !toAccountId) throw new Error("Escolha a conta de destino.");
-    return edit ? api(`/transactions/${edit.id}`, { method: "PATCH", body }) : api("/transactions", { body });
+    return edit ? api(`/transactions/${edit.id}`, { method: "PATCH", body }) : api<{ id: string; amount: number }>("/transactions", { body });
   });
+  const toast = useToast();
+  const undo = useAction((id: string) => api(`/transactions/${id}`, { method: "DELETE" }));
 
   const remove = useAction(async () => {
     if (edit && window.confirm("Apagar este lançamento?")) await api(`/transactions/${edit.id}`, { method: "DELETE" });
@@ -106,8 +114,14 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
   const submit = async () => {
     setFormError(null);
     try {
-      await save.mutateAsync();
+      const created = (await save.mutateAsync()) as { id?: string; amount?: number; title?: string } | undefined;
       onClose();
+      if (mode === "task") toast("Tarefa criada.");
+      else if (edit) toast("Lançamento atualizado.");
+      else if (created?.id) {
+        const label = mode === "income" ? "Receita" : mode === "transfer" ? "Transferência" : "Gasto";
+        toast(`${label} de ${formatBRL(created.amount ?? 0)} registrado.`, { label: "Desfazer", run: () => undo.mutateAsync(created.id!) });
+      }
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Não deu para salvar.");
     }
@@ -250,6 +264,16 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
                 <Select value={installments} onChange={(e) => setInstallments(Number(e.target.value))}>
                   {Array.from({ length: 24 }, (_, i) => i + 1).map((n) => (
                     <option key={n} value={n}>{n === 1 ? "À vista" : `${n}×`}</option>
+                  ))}
+                </Select>
+              </Field>
+            ) : null}
+
+            {mode === "expense" && isCard && installments > 1 ? (
+              <Field label="Parcela atual" hint="Para compra antiga: em qual parcela ela está hoje. Só as que faltam entram nas faturas.">
+                <Select value={current} onChange={(e) => setCurrent(Number(e.target.value))}>
+                  {Array.from({ length: installments }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n === 1 ? "Compra nova (1ª parcela)" : `${n}ª de ${installments}`}</option>
                   ))}
                 </Select>
               </Field>

@@ -88,12 +88,7 @@ export function TasksPage() {
         list.length ? (
           <Section key={title} title={title}>
             <List>
-              {list.map((t) => (
-                <div key={t.id} className="flex items-center">
-                  <div className="min-w-0 flex-1"><TaskRow task={t} today={today} /></div>
-                  <button type="button" onClick={() => setEditing(t)} className="mr-2 h-8 rounded-lg px-2.5 text-[13px] font-semibold text-ink-2 hover:bg-sunken hover:text-ink">Editar</button>
-                </div>
-              ))}
+              {list.map((t) => <TaskRow key={t.id} task={t} today={today} onOpen={() => setEditing(t)} />)}
             </List>
           </Section>
         ) : null,
@@ -103,7 +98,7 @@ export function TasksPage() {
           <button type="button" className="px-1 text-[14px] font-semibold text-ink-2 hover:text-ink" onClick={() => setShowDone(!showDone)}>
             {showDone ? "Esconder concluídas" : `Ver concluídas (${done.length})`}
           </button>
-          {showDone ? <List className="mt-2.5">{done.slice(0, 50).map((t) => <TaskRow key={t.id} task={t} today={today} />)}</List> : null}
+          {showDone ? <List className="mt-2.5">{done.slice(0, 50).map((t) => <TaskRow key={t.id} task={t} today={today} onOpen={() => setEditing(t)} />)}</List> : null}
         </div>
       ) : null}
       <TaskSheet task={editing} onClose={() => setEditing(null)} />

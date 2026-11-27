@@ -58,7 +58,7 @@ export function FinancePage() {
         {isLoading ? <Skeleton className="h-20" /> : (
           <List>
             {checking.map((a) => (
-              <Row key={a.id} onClick={() => setEditing(a)} leading={<IconBubble><Wallet /></IconBubble>} title={a.name} trailing={<Money cents={a.balance ?? 0} className={`text-[15px] font-semibold ${(a.balance ?? 0) < 0 ? "text-bad" : ""}`} />} />
+              <Row key={a.id} to={`/financas/conta/${a.id}`} leading={<IconBubble><Wallet /></IconBubble>} title={a.name} trailing={<Money cents={a.balance ?? 0} className={`text-[15px] font-semibold ${(a.balance ?? 0) < 0 ? "text-bad" : ""}`} />} />
             ))}
             {checking.length === 0 ? <Row title="Nenhuma conta" subtitle="Cadastre onde seu dinheiro fica." /> : null}
           </List>
@@ -123,7 +123,7 @@ function CardTile({ card }: { card: Account }) {
 }
 
 /** Criar ou editar conta/cartão. */
-function AccountSheet({ value, onClose }: { value: Account | "new-checking" | "new-card" | null; onClose: () => void }) {
+export function AccountSheet({ value, onClose }: { value: Account | "new-checking" | "new-card" | null; onClose: () => void }) {
   const editing = typeof value === "object" && value ? value : null;
   const [kind, setKind] = useState<"checking" | "card">("checking");
   const [name, setName] = useState("");

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, useAccounts, useAction, type Bill } from "@/lib/api";
 import { centsToInput, formatBRL, localToday, parseBRL, shortDate } from "@/lib/format";
 import { Button, ErrorNote, Field, Input, MoneyInput, Select, Sheet } from "./ui";
+import { useToast } from "./Toast";
 
 /** Marcar conta como paga: escolhe a conta usada e confirma o valor. */
 export function PayBill({ bill, onClose }: { bill: Bill | null; onClose: () => void }) {
@@ -18,6 +19,8 @@ export function PayBill({ bill, onClose }: { bill: Bill | null; onClose: () => v
     setDate(localToday());
   }, [bill]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const toast = useToast();
+  const unpay = useAction((id: string) => api(`/bills/${id}/unpay`, { body: {} }));
   const pay = useAction(() =>
     api(`/bills/${bill!.id}/pay`, { body: { accountId, amount: parseBRL(amount) ?? undefined, date } }),
   );
@@ -28,7 +31,15 @@ export function PayBill({ bill, onClose }: { bill: Bill | null; onClose: () => v
       onClose={onClose}
       title={bill ? `Pagar ${bill.name}` : "Pagar"}
       footer={
-        <Button size="lg" loading={pay.isPending} onClick={() => pay.mutate(undefined, { onSuccess: onClose })}>
+        <Button size="lg" loading={pay.isPending} onClick={() =>
+            pay.mutate(undefined, {
+              onSuccess: () => {
+                const b = bill!;
+                onClose();
+                toast(`${b.name} marcada como paga.`, { label: "Desfazer", run: () => unpay.mutateAsync(b.id) });
+              },
+            })
+          }>
           Marcar como paga
         </Button>
       }

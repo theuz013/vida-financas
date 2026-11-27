@@ -6,9 +6,10 @@ import "./styles.css";
 import { queryClient, useMe } from "@/lib/api";
 import { Layout } from "@/components/Layout";
 import { Skeleton } from "@/components/ui";
+import { ToastProvider } from "@/components/Toast";
 import { TodayPage } from "@/pages/Today";
 import { FinancePage } from "@/pages/Finance";
-import { BillsPage, CanBuyPage, CardPage, SummaryPage, TransactionsPage } from "@/pages/FinanceTools";
+import { AccountPage, BillsPage, CanBuyPage, CardPage, SummaryPage, TransactionsPage } from "@/pages/FinanceTools";
 import { AgendaPage, AreasPage, DeadlinesPage, LifeLayout, RemindersPage, TasksPage } from "@/pages/Life";
 import { PrivacyPage, SettingsPage } from "@/pages/Settings";
 import { LoginPage } from "@/pages/Login";
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
           { path: "financas/lancamentos", element: <TransactionsPage /> },
           { path: "financas/contas", element: <BillsPage /> },
           { path: "financas/cartao/:id", element: <CardPage /> },
+          { path: "financas/conta/:id", element: <AccountPage /> },
           { path: "financas/resumo", element: <SummaryPage /> },
           { path: "financas/posso-comprar", element: <CanBuyPage /> },
           {
@@ -75,7 +77,9 @@ const router = createBrowserRouter([
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

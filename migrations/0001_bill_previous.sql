@@ -1,0 +1,1 @@
+ALTER TABLE `bills` ADD `previous_bill_id` text;

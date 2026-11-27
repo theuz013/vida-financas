@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { CalendarClock, Check, Clock, CreditCard, Hourglass, Repeat } from "lucide-react";
-import { api, useAction, useMe, useToday, type Bill, type Task } from "@/lib/api";
+import { api, useAction, useMe, useToday, type Bill, type Task, type TodayData } from "@/lib/api";
 import { formatBRL, greeting, longDate, relativeDay, shortDate } from "@/lib/format";
 import { Chip, Empty, IconBubble, List, Money, Row, Section, Skeleton, cx } from "@/components/ui";
 import { PayBill } from "@/components/PayBill";
+import { SetupGuide } from "@/components/Setup";
 
 export function TodayPage() {
   const { data: me } = useMe();
@@ -38,6 +39,7 @@ export function TodayPage() {
       </header>
 
       <PerDay money={t.money} />
+      {me?.isDemo ? null : <SetupGuide />}
 
       {nothing ? (
         <div className="mt-8">
@@ -154,8 +156,17 @@ export function TodayPage() {
 }
 
 /** Cartão principal: quanto dá para gastar por dia até o próximo salário, com a conta explicada. */
-function PerDay({ money }: { money: { perDay: number; free: number; payday: string; paydayAssumed: boolean; days: number } }) {
+function PerDay({ money }: { money: TodayData["money"] }) {
   const negative = money.free < 0;
+  if (!money.hasData) {
+    return (
+      <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 py-5 text-on-hero shadow-cta transition-opacity hover:opacity-95">
+        <p className="text-[14px] font-semibold text-on-hero-2">Pode gastar por dia</p>
+        <p className="mt-1.5 text-[22px] leading-tight font-bold tracking-[-0.02em]">Cadastre seus saldos para ver quanto dá para gastar.</p>
+        <p className="mt-2 text-[14px] text-on-hero-2">O app desconta as contas e faturas até o próximo salário.</p>
+      </Link>
+    );
+  }
   return (
     <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 pt-5 pb-4 text-on-hero shadow-cta transition-opacity hover:opacity-95">
       <p className="text-[14px] font-semibold text-on-hero-2">Pode gastar por dia</p>
@@ -178,7 +189,7 @@ function PerDay({ money }: { money: { perDay: number; free: number; payday: stri
   );
 }
 
-export function TaskRow({ task, today }: { task: Task; today: string }) {
+export function TaskRow({ task, today, onOpen }: { task: Task; today: string; onOpen?: () => void }) {
   const toggle = useAction(() => api(`/tasks/${task.id}`, { method: "PATCH", body: { done: !task.done } }));
   const late = task.dueDate && task.dueDate < today && !task.done;
   return (
@@ -196,16 +207,25 @@ export function TaskRow({ task, today }: { task: Task; today: string }) {
       >
         {task.done ? <Check className="size-3.5" strokeWidth={3} /> : null}
       </button>
-      <div className="min-w-0 flex-1">
+      <Wrap onOpen={onOpen}>
         <div className={cx("truncate text-[15px] font-medium", task.done && "text-ink-3 line-through")}>{task.title}</div>
         <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[13px] text-ink-2">
           {task.areaName ? <span>{task.areaName}</span> : null}
           {task.areaName && task.dueDate ? <span aria-hidden>·</span> : null}
           {task.dueDate ? <span className={cx(late && "font-semibold text-bad")}>{late ? `Atrasada desde ${shortDate(task.dueDate)}` : relativeDay(task.dueDate, today)}</span> : null}
         </div>
-      </div>
+      </Wrap>
       {task.priority === "high" && !task.done ? <Chip tone="warn">Alta</Chip> : null}
     </div>
+  );
+}
+
+function Wrap({ onOpen, children }: { onOpen?: () => void; children: React.ReactNode }) {
+  if (!onOpen) return <div className="min-w-0 flex-1">{children}</div>;
+  return (
+    <button type="button" onClick={onOpen} className="min-w-0 flex-1 rounded-lg text-left">
+      {children}
+    </button>
   );
 }
 
