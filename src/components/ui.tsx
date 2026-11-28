@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { Link } from "react-router";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
 export function cx(...c: (string | false | null | undefined)[]) {
@@ -427,5 +427,22 @@ export function SectionTabs({ label, children }: { label: string; children: Reac
         {children}
       </nav>
     </>
+  );
+}
+
+/** Bloco que abre e fecha (título clicável). `open` controla de fora, se precisar. */
+export function Collapse({ title, subtitle, open, onToggle, children, id }: { title: string; subtitle?: ReactNode; open: boolean; onToggle: () => void; children: ReactNode; id?: string }) {
+  return (
+    <Card as="div" className="overflow-hidden">
+      <div id={id} className="scroll-mt-28" />
+      <button type="button" aria-expanded={open} onClick={onToggle} className="flex min-h-14 w-full items-center gap-3 px-4 py-3.5 text-left active:bg-sunken">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[16px] font-bold tracking-[-0.01em]">{title}</span>
+          {subtitle ? <span className="block text-[13px] text-ink-2">{subtitle}</span> : null}
+        </span>
+        <ChevronDown className={cx("size-5 shrink-0 text-ink-3 transition-transform duration-200", open && "rotate-180")} aria-hidden />
+      </button>
+      {open ? <div className="border-t border-line px-4 pt-4 pb-4">{children}</div> : null}
+    </Card>
   );
 }

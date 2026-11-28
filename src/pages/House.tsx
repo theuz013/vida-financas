@@ -25,6 +25,7 @@ import { centsToInput, formatBRL, localToday, longDate, parseBRL, relativeDay, s
 import {
   Button,
   Card,
+  Collapse,
   Chip,
   Empty,
   ErrorNote,
@@ -763,11 +764,14 @@ export function HouseMembersPage() {
   const navigate = useNavigate();
   const isAdmin = me.role === "admin";
   const leave = useAction(() => api("/household/leave", { body: {} }));
-  usePlusAction(isAdmin ? "Convidar" : null, () => document.getElementById("convite")?.scrollIntoView({ behavior: "smooth" }));
+  const [inviting, setInviting] = useState(false);
+  usePlusAction(isAdmin ? "Convidar" : null, () => {
+    setInviting(true);
+    setTimeout(() => document.getElementById("convite")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  });
 
   return (
     <div>
-      {isAdmin ? <InviteCard invite={invite ?? null} houseName={house.name} /> : null}
       <Section title="Pessoas">
         <List>
           {members.map((m) => (
@@ -781,6 +785,19 @@ export function HouseMembersPage() {
           ))}
         </List>
       </Section>
+      {isAdmin ? (
+        <Section title="Convite">
+          <Collapse
+            id="convite"
+            open={inviting}
+            onToggle={() => setInviting(!inviting)}
+            title={invite ? "Código de convite ativo" : "Convidar para a casa"}
+            subtitle={invite ? `Vale até ${new Date(invite.expiresAt).toLocaleDateString("pt-BR")}` : "Gere um código de 6 caracteres"}
+          >
+            <InviteCard invite={invite ?? null} houseName={house.name} />
+          </Collapse>
+        </Section>
+      ) : null}
       <Section title="Casa">
         <List>
           {isAdmin ? <Row onClick={() => setRenaming(true)} title="Mudar o nome da casa" subtitle={house.name} /> : null}
@@ -824,9 +841,7 @@ function InviteCard({ invite, houseName }: { invite: { code: string; expiresAt: 
     setCopied(true);
   };
   return (
-    <Card className="px-5 py-5" as="div">
-      <div id="convite" className="scroll-mt-24" />
-      <h2 className="text-[17px] font-bold tracking-[-0.01em]">Convidar para a casa</h2>
+    <div>
       {invite ? (
         <>
           <p className="mt-1 text-[14px] text-ink-2">Quem for entrar digita este código ao criar a conta (ou em Casa, se já tiver conta).</p>
@@ -848,7 +863,7 @@ function InviteCard({ invite, houseName }: { invite: { code: string; expiresAt: 
         </>
       )}
       <ErrorNote error={create.error ?? revoke.error} />
-    </Card>
+    </div>
   );
 }
 

@@ -29,6 +29,7 @@ const SHOTS = process.env.SHOTS;
   ok("conta da casa criada", await seen(dono.getByText("Condomínio")));
   // convite
   await dono.getByRole("link", { name: "Membros" }).click(); await dono.waitForLoadState("networkidle");
+  if ((await dono.getByRole("button", { name: /Convidar para a casa/ }).getAttribute("aria-expanded")) === "false") await dono.getByRole("button", { name: /Convidar para a casa/ }).click();
   await dono.getByRole("button", { name: "Gerar código de convite" }).click(); await dono.waitForTimeout(700);
   const code = (await dono.locator("p.num").filter({ hasText: /^[A-Z0-9]{6}$/ }).innerText()).trim();
   ok("código de convite gerado", /^[A-Z0-9]{6}$/.test(code));
@@ -81,6 +82,18 @@ const SHOTS = process.env.SHOTS;
   await shot(dono, "casa-5-compras");
   // permissões: dono tira finanças da esposa
   await dono.goto(B + "/casa/membros"); await dono.waitForLoadState("networkidle");
+  {
+    const heads = await dono.locator("h2").allInnerTexts();
+    const iPess = heads.indexOf("Pessoas"), iConv = heads.indexOf("Convite");
+    ok("membros: Pessoas vem antes do Convite", iPess >= 0 && iConv > iPess);
+    const btn = dono.getByRole("button", { name: /Convidar para a casa|Código de convite ativo/ });
+    ok("convite começa fechado", (await btn.getAttribute("aria-expanded")) === "false");
+    await btn.click(); await dono.waitForTimeout(200);
+    ok("convite abre ao tocar", (await btn.getAttribute("aria-expanded")) === "true" && await seen(dono.getByRole("button", { name: "Copiar" })));
+    await btn.click(); await dono.waitForTimeout(200);
+    ok("convite fecha de novo", (await btn.getAttribute("aria-expanded")) === "false");
+    await btn.click(); await dono.waitForTimeout(200);
+  }
   await dono.getByRole("button", { name: /Pessoa 2/ }).click();
   await shot(dono, "casa-6-permissoes");
   await dono.getByText("Ver e editar as finanças da casa").click();
