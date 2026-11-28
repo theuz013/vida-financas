@@ -184,6 +184,8 @@ export async function buildToday(db: DB, userId: string, tz: string) {
       payday: fc.payday,
       paydayAssumed: fc.paydayAssumed,
       days: fc.days,
+      buckets: fc.buckets,
+      spendable: fc.cash,
       // sem saldo cadastrado nem lançamento, o cálculo ainda não diz nada
       hasData: fin.accounts.some((a) => a.kind === "checking" && a.openingBalance !== 0) || fin.txs.length > 0,
     },

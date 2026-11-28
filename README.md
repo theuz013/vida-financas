@@ -176,6 +176,15 @@ curl -X POST https://SEU-ENDERECO/api/v1/transactions -H "X-Api-Key: vf_..." -H 
 
 As respostas de erro vêm em JSON com `error` em português, para o assistente repassar.
 
+## Quatro baldes do dinheiro
+
+Cada conta (não-cartão) pertence a um balde: **conta corrente**, **carteira em dinheiro**, **guardado** ou **investido**.
+
+- Gasto por dia = (corrente + carteira em dinheiro − contas e faturas até o salário) ÷ dias até o salário.
+- Guardado e investido não entram de jeito nenhum; o "Posso comprar isso?" também usa só corrente e carteira (e o limite do cartão).
+- Transferir do investido ou do guardado para a conta corrente conta como dinheiro gastável, porque você moveu de propósito.
+- Rota `GET /api/buckets` mostra os quatro saldos e o cálculo.
+
 ## Casa (vertente familiar)
 
 Aba **Casa**. O primeiro a criar a casa vira administrador e gera um **código de convite** (6 caracteres, vale 7 dias, pode ser cancelado ou trocado). Quem recebe o código toca em "Tenho um código de convite" na tela de entrada e já cria a conta dentro da casa; quem já tem conta digita o código em Casa.

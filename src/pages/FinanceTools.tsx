@@ -500,7 +500,7 @@ export function CanBuyPage() {
 
   return (
     <div>
-      <PageHeader title="Posso comprar isso?" subtitle="Considera saldo, limite e o que vence até o próximo salário." back="/financas" />
+      <PageHeader title="Posso comprar isso?" subtitle="Usa só o gastável (conta corrente e carteira) e o limite do cartão. Guardado e investido não entram." back="/financas" />
       <Card className="space-y-4 px-5 py-5">
         <MoneyInput large autoFocus value={amount} onChange={setAmount} aria-label="Valor da compra" onKeyDown={(e) => e.key === "Enter" && run()} />
         <Segmented value={method} onChange={setMethod} options={[{ value: "pix", label: "Pix" }, { value: "debit", label: "Débito" }, { value: "credit", label: "Crédito" }]} />

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { CalendarClock, Check, Clock, CreditCard, Hourglass, Repeat, Settings, Users } from "lucide-react";
-import { api, useAction, useMe, useToday, type Bill, type Task, type TodayData } from "@/lib/api";
+import { api, BUCKET_HINT, BUCKET_LABEL, useAction, useMe, useToday, type Bill, type Bucket, type Task, type TodayData } from "@/lib/api";
 import { formatBRL, greeting, longDate, relativeDay, shortDate } from "@/lib/format";
 import { Chip, Empty, IconBubble, List, Money, Row, Section, Skeleton, cx } from "@/components/ui";
 import { PayBill } from "@/components/PayBill";
@@ -197,37 +197,51 @@ function HouseToday({ house, today }: { house: NonNullable<TodayData["house"]>; 
   );
 }
 
-/** Cartão principal: quanto dá para gastar por dia até o próximo salário, com a conta explicada. */
+/** Gasto por dia: só corrente + carteira. Abaixo, os quatro baldes separados. */
 function PerDay({ money }: { money: TodayData["money"] }) {
   const negative = money.free < 0;
-  if (!money.hasData) {
-    return (
-      <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 py-5 text-on-hero shadow-cta transition-opacity hover:opacity-95">
-        <p className="text-[14px] font-semibold text-on-hero-2">Pode gastar por dia</p>
-        <p className="mt-1.5 text-[22px] leading-tight font-bold tracking-[-0.02em]">Cadastre seus saldos para ver quanto dá para gastar.</p>
-        <p className="mt-2 text-[14px] text-on-hero-2">O app desconta as contas e faturas até o próximo salário.</p>
-      </Link>
-    );
-  }
+  const b = money.buckets;
+  const rows: Bucket[] = ["checking", "cash", "saved", "invested"];
   return (
-    <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 pt-5 pb-4 text-on-hero shadow-cta transition-opacity hover:opacity-95 active:opacity-90 max-[374px]:px-4 max-[374px]:pt-4 max-[374px]:pb-3.5">
-      <p className="text-[14px] font-semibold text-on-hero-2">Pode gastar por dia</p>
-      <p className={cx("num mt-1 text-[44px] leading-none font-extrabold tracking-[-0.035em] max-[374px]:text-[38px]", negative && "text-bad")}>
-        {negative ? "R$ 0" : formatBRL(money.perDay)}
-      </p>
-      <p className="num mt-3 text-[14px] leading-snug text-on-hero-2">
-        {negative ? (
-          <>Faltam {formatBRL(-money.free)} para as contas até {shortDate(money.payday)}.</>
-        ) : (
-          <>
-            {formatBRL(money.free)} livres ÷ {money.days} {money.days === 1 ? "dia" : "dias"} até {shortDate(money.payday)}, já sem as contas e faturas.
-          </>
-        )}
-      </p>
-      {money.paydayAssumed ? (
-        <p className="mt-3 border-t border-white/10 pt-3 text-[13.5px] font-medium">Contando até o dia 1º. Informe a data do próximo recebimento em Finanças.</p>
-      ) : null}
-    </Link>
+    <div className="space-y-3">
+      {!money.hasData ? (
+        <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 py-5 text-on-hero shadow-cta transition-opacity hover:opacity-95">
+          <p className="text-[14px] font-semibold text-on-hero-2">Pode gastar por dia</p>
+          <p className="mt-1.5 text-[22px] leading-tight font-bold tracking-[-0.02em]">Cadastre seus saldos para ver quanto dá para gastar.</p>
+          <p className="mt-2 text-[14px] text-on-hero-2">Conta corrente e carteira entram; guardado e investido não.</p>
+        </Link>
+      ) : (
+        <Link to="/financas" className="block rounded-[var(--radius-card)] bg-hero px-5 pt-5 pb-4 text-on-hero shadow-cta transition-opacity hover:opacity-95 active:opacity-90 max-[374px]:px-4 max-[374px]:pt-4 max-[374px]:pb-3.5">
+          <p className="text-[14px] font-semibold text-on-hero-2">Pode gastar por dia</p>
+          <p className={cx("num mt-1 text-[44px] leading-none font-extrabold tracking-[-0.035em] max-[374px]:text-[38px]", negative && "text-bad")}>
+            {negative ? "R$ 0" : formatBRL(money.perDay)}
+          </p>
+          <p className="num mt-3 text-[14px] leading-snug text-on-hero-2">
+            {negative ? (
+              <>Faltam {formatBRL(-money.free)} para as contas até {shortDate(money.payday)}.</>
+            ) : (
+              <>
+                ({formatBRL(money.spendable)} gastável − contas e faturas) ÷ {money.days} {money.days === 1 ? "dia" : "dias"} até {shortDate(money.payday)}.
+              </>
+            )}
+          </p>
+          {money.paydayAssumed ? (
+            <p className="mt-3 border-t border-white/10 pt-3 text-[13.5px] font-medium">Contando até o dia 1º. Informe a data do próximo recebimento em Finanças.</p>
+          ) : null}
+        </Link>
+      )}
+      <List>
+        {rows.map((k) => (
+          <Row
+            key={k}
+            to="/financas"
+            title={BUCKET_LABEL[k]}
+            subtitle={BUCKET_HINT[k]}
+            trailing={<Money cents={b[k]} className={cx("text-[15px] font-semibold", (k === "saved" || k === "invested") && "text-ink-2")} />}
+          />
+        ))}
+      </List>
+    </div>
   );
 }
 

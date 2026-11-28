@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bucketBalances,
   canBuy,
   cardInvoices,
   cardSummary,
@@ -212,5 +213,59 @@ describe("posso comprar isso?", () => {
     expect(big.options[0].verdict).toBe("aperta");
     const over = canBuy({ ...base, amount: 600_000, method: "credit", installments: 10 });
     expect(over.options[0].verdict).toBe("nao_cabe");
+  });
+});
+
+describe("quatro baldes", () => {
+  const corrente: AccountLike = { ...wallet, id: "cc", name: "Corrente", kind: "checking", bucket: "checking", openingBalance: 100_000 };
+  const carteira: AccountLike = { ...wallet, id: "cw", name: "Carteira em dinheiro", kind: "checking", bucket: "cash", openingBalance: 20_000 };
+  const guardado: AccountLike = { ...wallet, id: "cg", name: "Caixinha", kind: "checking", bucket: "saved", openingBalance: 300_000 };
+  const investido: AccountLike = { ...wallet, id: "ci", name: "Tesouro", kind: "checking", bucket: "invested", openingBalance: 900_000 };
+  const all = [corrente, carteira, guardado, investido];
+
+  it("separa o saldo em quatro baldes", () => {
+    const b = bucketBalances(all, []);
+    expect(b).toEqual({ checking: 100_000, cash: 20_000, saved: 300_000, invested: 900_000 });
+  });
+
+  it("gasto por dia = (corrente + carteira − contas e faturas) ÷ dias; guardado e investido ficam de fora", () => {
+    const fc = forecast({
+      accounts: all,
+      txs: [],
+      bills: [bill({ amount: 30_000, dueDate: "2026-12-05" })],
+      today: "2026-11-27",
+      nextPayday: "2026-12-07",
+    });
+    // (100.000 + 20.000 − 30.000) ÷ 10 dias = 9.000 por dia
+    expect(fc.cash).toBe(120_000);
+    expect(fc.free).toBe(90_000);
+    expect(fc.perDay).toBe(9_000);
+    expect(fc.buckets.saved).toBe(300_000);
+    expect(fc.buckets.invested).toBe(900_000);
+  });
+
+  it("guardado e investido nunca entram, nem com valor muito alto", () => {
+    const fc = forecast({ accounts: [guardado, investido], txs: [], bills: [], today: "2026-11-27", nextPayday: "2026-12-07" });
+    expect(fc.cash).toBe(0);
+    expect(fc.perDay).toBe(0);
+  });
+
+  it("Posso comprar (pix/débito) olha só o que é gastável", () => {
+    // 500 reais: só a carteira (200) + a corrente (1000) são gastáveis
+    const r = canBuy({
+      amount: 150_000,
+      method: "pix",
+      accounts: all,
+      txs: [],
+      bills: [],
+      today: "2026-11-27",
+      nextPayday: "2026-12-07",
+    });
+    const names = r.options.map((o) => o.accountName);
+    expect(names).toEqual(expect.arrayContaining(["Corrente", "Carteira em dinheiro"]));
+    expect(names).not.toContain("Caixinha");
+    expect(names).not.toContain("Tesouro");
+    // guardado de 3.000 não pode fazer a compra de 1.500 caber na Caixinha
+    expect(r.options.find((o) => o.accountName === "Carteira em dinheiro")?.verdict).toBe("nao_cabe");
   });
 });

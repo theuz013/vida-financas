@@ -124,6 +124,17 @@ check("transferência não conta como gasto nem receita", r.data.expense === 155
 await call("PATCH", "/api/settings", { nextPayday: plusDays(20) });
 r = await call("GET", "/api/forecast");
 check("gasto por dia", typeof r.data.perDay === "number" && r.data.days === 20 && !r.data.paydayAssumed, `R$ ${(r.data.perDay / 100).toFixed(2)}/dia, livre ${r.data.free}`);
+// quatro baldes: guardado e investido não mexem no gasto por dia
+r = await call("GET", "/api/forecast");
+const antes = r.data.perDay;
+const cofre = (await call("POST", "/api/accounts", { name: "Cofre", kind: "checking", bucket: "saved", openingBalance: 9_000_000 })).data;
+const tesouro = (await call("POST", "/api/accounts", { name: "Tesouro", kind: "checking", bucket: "invested", openingBalance: 9_000_000 })).data;
+r = await call("GET", "/api/forecast");
+check("guardado e investido não mudam o gasto por dia", r.data.perDay === antes, `${antes} → ${r.data.perDay}`);
+r = await call("GET", "/api/buckets");
+check("rota de baldes separa guardado e investido", r.data.buckets.saved >= 9_000_000 && r.data.buckets.invested >= 9_000_000 && r.data.buckets.cash >= 0);
+r = await call("POST", "/api/can-buy", { amount: 1000_00, method: "pix" });
+check("posso comprar não usa guardado nem investido", !r.data.options.some((o) => o.accountId === cofre.id || o.accountId === tesouro.id));
 r = await call("POST", "/api/can-buy", { amount: 30000, method: "pix" });
 check("posso comprar (pix)", r.data.options.length === 2 && ["cabe", "aperta", "nao_cabe"].includes(r.data.options[0].verdict), r.data.options.map((o) => `${o.accountName}: ${o.verdict}`).join("; "));
 r = await call("POST", "/api/can-buy", { amount: 300000, method: "credit", installments: 10 });

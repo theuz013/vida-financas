@@ -41,6 +41,7 @@ export const finance = router();
 const accountInput = z.object({
   name: z.string().trim().min(1).max(60),
   kind: z.enum(["checking", "card"]),
+  bucket: z.enum(["checking", "cash", "saved", "invested"]).optional(),
   openingBalance: zCents.optional(),
   creditLimit: zCents.nonnegative().nullable().optional(),
   closingDay: z.number().int().min(1).max(31).nullable().optional(),
@@ -395,6 +396,14 @@ finance.post("/bills/:id/unpay", async (c) => {
 });
 
 /* ===================== Cálculos ===================== */
+
+/** Os quatro baldes, separados (a tela Hoje mostra cada um). */
+finance.get("/buckets", async (c) => {
+  const { db, userId, tz } = c.var;
+  const { accounts, txs, bills, settings } = await loadFinance(db, userId);
+  const fc = forecast({ accounts, txs, bills, today: todayIn(tz), nextPayday: settings?.nextPayday ?? null });
+  return c.json({ buckets: fc.buckets, spendable: fc.cash, committed: fc.committed, free: fc.free, perDay: fc.perDay, days: fc.days, payday: fc.payday, paydayAssumed: fc.paydayAssumed });
+});
 
 finance.get("/forecast", async (c) => {
   const { db, userId, tz } = c.var;

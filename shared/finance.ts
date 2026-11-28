@@ -5,10 +5,24 @@
 import { addDays, addMonths, clampedDate, daysBetween, parts, type ISODate } from "./dates";
 import { splitInstallments } from "./money";
 
+/**
+ * Os quatro baldes do dinheiro (não-cartão):
+ * - checking: conta corrente (entra no gasto por dia)
+ * - cash: carteira em dinheiro (entra, mas aparece separada)
+ * - saved: guardado (não entra)
+ * - invested: investido (não entra de jeito nenhum)
+ */
+export type Bucket = "checking" | "cash" | "saved" | "invested";
+export const BUCKETS: Bucket[] = ["checking", "cash", "saved", "invested"];
+/** Só estes baldes entram no "gasto por dia" e no "Posso comprar isso?". */
+export const SPENDABLE_BUCKETS: Bucket[] = ["checking", "cash"];
+
 export interface AccountLike {
   id: string;
   name: string;
   kind: "checking" | "card";
+  /** Balde do dinheiro (só vale para conta, não para cartão). Padrão: conta corrente. */
+  bucket?: Bucket;
   openingBalance: number;
   creditLimit: number | null;
   closingDay: number | null;
@@ -37,6 +51,18 @@ export interface BillLike {
 }
 
 /* ===================== Saldo de conta ===================== */
+
+export const bucketOf = (a: AccountLike): Bucket => (a.kind === "card" ? "checking" : (a.bucket ?? "checking"));
+
+/** Saldo de cada balde (contas não arquivadas, sem cartão). */
+export function bucketBalances(accounts: AccountLike[], txs: TxLike[]): Record<Bucket, number> {
+  const out: Record<Bucket, number> = { checking: 0, cash: 0, saved: 0, invested: 0 };
+  for (const a of accounts) {
+    if (a.archived || a.kind === "card") continue;
+    out[bucketOf(a)] += checkingBalance(a, txs);
+  }
+  return out;
+}
 
 /** Saldo atual de uma conta corrente/carteira. */
 export function checkingBalance(account: AccountLike, txs: TxLike[]): number {
@@ -188,7 +214,10 @@ export interface Forecast {
   /** true quando o usuário não informou a data do próximo recebimento (usa o fim do mês). */
   paydayAssumed: boolean;
   days: number;
+  /** Gastável: corrente + carteira em dinheiro. */
   cash: number;
+  /** Os quatro baldes, para a tela mostrar separado. */
+  buckets: Record<Bucket, number>;
   commitments: Commitment[];
   committed: number;
   free: number;
@@ -217,9 +246,9 @@ export function forecast(input: {
   }
 
   const active = accounts.filter((a) => !a.archived);
-  const cash = active
-    .filter((a) => a.kind === "checking")
-    .reduce((s, a) => s + checkingBalance(a, txs), 0);
+  const buckets = bucketBalances(active, txs);
+  // gastável = corrente + carteira em dinheiro; guardado e investido ficam de fora
+  const cash = SPENDABLE_BUCKETS.reduce((s, b) => s + buckets[b], 0);
 
   const commitments: Commitment[] = [];
   for (const b of bills) {
@@ -257,6 +286,7 @@ export function forecast(input: {
     paydayAssumed,
     days,
     cash,
+    buckets,
     commitments,
     committed,
     free,
@@ -307,7 +337,7 @@ export function canBuy(input: {
   };
 
   if (method === "pix" || method === "debit") {
-    for (const acc of active.filter((a) => a.kind === "checking")) {
+    for (const acc of active.filter((a) => a.kind === "checking" && SPENDABLE_BUCKETS.includes(bucketOf(a)))) {
       const balance = checkingBalance(acc, input.txs);
       const { freeAfter, perDayAfter } = judge(amount);
       let verdict: CanBuyOption["verdict"];

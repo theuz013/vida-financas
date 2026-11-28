@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Calculator, CreditCard, List as ListIcon, PieChart, Plus, Receipt, Wallet } from "lucide-react";
-import { api, useAccounts, useAction, useForecast, useSettings, type Account } from "@/lib/api";
+import { api, BUCKET_HINT, BUCKET_LABEL, useAccounts, useAction, useForecast, useSettings, type Account, type Bucket } from "@/lib/api";
 import { centsToInput, formatBRL, parseBRL, shortDate } from "@/lib/format";
-import { Button, Card, Chip, ErrorNote, Field, IconBubble, Input, List, Money, MoneyInput, PageHeader, Row, Section, Segmented, Sheet, Skeleton } from "@/components/ui";
+import { Button, Card, Chip, ErrorNote, Field, IconBubble, Input, List, Money, MoneyInput, PageHeader, Row, Section, Segmented, Select, Sheet, Skeleton } from "@/components/ui";
 
 export function FinancePage() {
   const { data: accounts, isLoading } = useAccounts();
@@ -17,7 +17,7 @@ export function FinancePage() {
 
   return (
     <div>
-      <PageHeader title="Finanças" subtitle={<>Saldo em contas: <Money cents={total} className="font-semibold text-ink" /></>} />
+      <PageHeader title="Finanças" subtitle={<>Total em contas: <Money cents={total} className="font-semibold text-ink" /></>} />
 
       {fc ? (
         <Card className="px-5 py-4">
@@ -33,13 +33,13 @@ export function FinancePage() {
             </Button>
           </div>
           <dl className="num mt-4 space-y-2 border-t border-line pt-3 text-[14px]">
-            <div className="flex justify-between"><dt className="text-ink-2">Nas contas</dt><dd className="font-semibold">{formatBRL(fc.cash)}</dd></div>
-            <div className="flex justify-between">
-              <dt className="text-ink-2">Contas e faturas até {shortDate(fc.payday)}</dt>
-              <dd className="font-semibold">− {formatBRL(fc.committed)}</dd>
-            </div>
-            <div className="flex justify-between"><dt className="text-ink-2">Livre</dt><dd className="font-bold">{formatBRL(fc.free)}</dd></div>
+            <div className="flex justify-between"><dt className="text-ink-2">Conta corrente</dt><dd className="font-semibold">{formatBRL(fc.buckets.checking)}</dd></div>
+            <div className="flex justify-between"><dt className="text-ink-2">Carteira em dinheiro</dt><dd className="font-semibold">{formatBRL(fc.buckets.cash)}</dd></div>
+            <div className="flex justify-between border-t border-line pt-2"><dt className="font-semibold">Gastável</dt><dd className="font-bold">{formatBRL(fc.cash)}</dd></div>
+            <div className="flex justify-between"><dt className="text-ink-2">Contas e faturas até {shortDate(fc.payday)}</dt><dd className="font-semibold">− {formatBRL(fc.committed)}</dd></div>
+            <div className="flex justify-between"><dt className="text-ink-2">Sobra</dt><dd className="font-bold">{formatBRL(fc.free)}</dd></div>
           </dl>
+          <p className="mt-3 text-[13px] text-ink-2">Guardado ({formatBRL(fc.buckets.saved)}) e investido ({formatBRL(fc.buckets.invested)}) não entram nessa conta.</p>
           {fc.unknownBills ? <p className="mt-3 text-[13px] text-warn">{fc.unknownBills === 1 ? "1 conta" : `${fc.unknownBills} contas`} com valor a confirmar ainda não entra na conta.</p> : null}
           {fc.paydayAssumed ? <p className="mt-3 text-[13px] text-ink-2">Sem a data do próximo recebimento, conto até o dia 1º do mês que vem.</p> : null}
         </Card>
@@ -57,12 +57,26 @@ export function FinancePage() {
       <Section title="Contas" action={<AddLink onClick={() => setEditing("new-checking")} label="Nova conta" />}>
         {isLoading ? <Skeleton className="h-20" /> : (
           <List>
-            {checking.map((a) => (
-              <Row key={a.id} to={`/financas/conta/${a.id}`} leading={<IconBubble><Wallet /></IconBubble>} title={a.name} trailing={<Money cents={a.balance ?? 0} className={`text-[15px] font-semibold ${(a.balance ?? 0) < 0 ? "text-bad" : ""}`} />} />
-            ))}
             {checking.length === 0 ? <Row title="Nenhuma conta" subtitle="Cadastre onde seu dinheiro fica." /> : null}
           </List>
         )}
+        {(["checking", "cash", "saved", "invested"] as Bucket[]).map((k) => {
+          const list = checking.filter((a) => a.bucket === k);
+          if (!list.length) return null;
+          return (
+            <div key={k} className="mt-4">
+              <div className="mb-2 flex items-baseline justify-between px-1">
+                <span className="text-[14px] font-semibold">{BUCKET_LABEL[k]}</span>
+                <span className="text-[12.5px] text-ink-2">{BUCKET_HINT[k]}</span>
+              </div>
+              <List>
+                {list.map((a) => (
+                  <Row key={a.id} to={`/financas/conta/${a.id}`} leading={<IconBubble><Wallet /></IconBubble>} title={a.name} trailing={<Money cents={a.balance ?? 0} className={`text-[15px] font-semibold ${(a.balance ?? 0) < 0 ? "text-bad" : ""}`} />} />
+                ))}
+              </List>
+            </div>
+          );
+        })}
       </Section>
 
       <Section title="Cartões" action={<AddLink onClick={() => setEditing("new-card")} label="Novo cartão" />}>
@@ -126,6 +140,7 @@ function CardTile({ card }: { card: Account }) {
 export function AccountSheet({ value, onClose }: { value: Account | "new-checking" | "new-card" | null; onClose: () => void }) {
   const editing = typeof value === "object" && value ? value : null;
   const [kind, setKind] = useState<"checking" | "card">("checking");
+  const [bucket, setBucket] = useState<Bucket>("checking");
   const [name, setName] = useState("");
   const [balance, setBalance] = useState("");
   const [limit, setLimit] = useState("");
@@ -136,6 +151,7 @@ export function AccountSheet({ value, onClose }: { value: Account | "new-checkin
     if (!value) return;
     const a = editing;
     setKind(a?.kind ?? (value === "new-card" ? "card" : "checking"));
+    setBucket(a?.bucket ?? "checking");
     setName(a?.name ?? "");
     setBalance(a ? centsToInput(a.openingBalance) : "");
     setLimit(a ? centsToInput(a.creditLimit) : "");
@@ -146,7 +162,7 @@ export function AccountSheet({ value, onClose }: { value: Account | "new-checkin
   const save = useAction(() => {
     const body =
       kind === "checking"
-        ? { name, kind, openingBalance: parseBRL(balance || "0") ?? 0 }
+        ? { name, kind, bucket, openingBalance: parseBRL(balance || "0") ?? 0 }
         : { name, kind, creditLimit: parseBRL(limit || "0") ?? 0, closingDay: Number(closingDay) || null, dueDay: Number(dueDay) || null };
     return editing ? api(`/accounts/${editing.id}`, { method: "PATCH", body }) : api("/accounts", { body });
   });
@@ -177,6 +193,15 @@ export function AccountSheet({ value, onClose }: { value: Account | "new-checkin
         <Field label="Nome">
           <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "card" ? "Ex.: Nubank" : "Ex.: Inter"} />
         </Field>
+        {kind === "checking" ? (
+          <Field label="Tipo de dinheiro" hint={BUCKET_HINT[bucket]}>
+            <Select value={bucket} onChange={(e) => setBucket(e.target.value as Bucket)}>
+              {(["checking", "cash", "saved", "invested"] as Bucket[]).map((k) => (
+                <option key={k} value={k}>{BUCKET_LABEL[k]}</option>
+              ))}
+            </Select>
+          </Field>
+        ) : null}
         {kind === "checking" ? (
           <Field label={editing ? "Saldo inicial" : "Saldo de hoje"} hint="O saldo atual é este valor mais tudo o que você registrar depois.">
             <MoneyInput value={balance} onChange={setBalance} />

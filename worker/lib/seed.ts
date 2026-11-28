@@ -33,6 +33,7 @@ export async function seedDefaults(db: DB, userId: string, timezone: string) {
     userId,
     name: "Carteira",
     kind: "checking",
+    bucket: "cash",
     openingBalance: 0,
   });
 }
@@ -50,7 +51,9 @@ export async function seedDemo(db: DB, userId: string, timezone: string) {
   const bank = id();
   const card = id();
   await db.insert(schema.accounts).values([
-    { id: bank, userId, name: "Banco Exemplo", kind: "checking", openingBalance: 61_540 },
+    { id: bank, userId, name: "Banco Exemplo", kind: "checking", bucket: "checking", openingBalance: 61_540 },
+    { id: id(), userId, name: "Caixinha", kind: "checking", bucket: "saved", openingBalance: 150_000 },
+    { id: id(), userId, name: "Tesouro (exemplo)", kind: "checking", bucket: "invested", openingBalance: 500_000 },
     { id: card, userId, name: "Cartão Exemplo", kind: "card", creditLimit: 400_000, closingDay: 3, dueDay: 10 },
   ]);
   if (wallet) {

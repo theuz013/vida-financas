@@ -1,0 +1,1 @@
+ALTER TABLE `accounts` ADD `bucket` text DEFAULT 'checking' NOT NULL;

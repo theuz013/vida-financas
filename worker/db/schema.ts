@@ -100,6 +100,8 @@ export const accounts = sqliteTable(
     name: text("name").notNull(),
     /** checking = conta/carteira; card = cartão de crédito */
     kind: text("kind", { enum: ["checking", "card"] }).notNull(),
+    /** Balde do dinheiro (só conta): checking | cash | saved | invested. */
+    bucket: text("bucket", { enum: ["checking", "cash", "saved", "invested"] }).notNull().default("checking"),
     /** Conta: saldo inicial. O saldo atual é derivado das transações. */
     openingBalance: integer("opening_balance").notNull().default(0),
     /** Cartão: limite total. */

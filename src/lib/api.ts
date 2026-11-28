@@ -31,10 +31,26 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
 
 /* ---------- tipos ---------- */
 
+export type { Bucket } from "@shared/finance";
+import type { Bucket } from "@shared/finance";
+export const BUCKET_LABEL: Record<Bucket, string> = {
+  checking: "Conta corrente",
+  cash: "Carteira em dinheiro",
+  saved: "Guardado",
+  invested: "Investido",
+};
+export const BUCKET_HINT: Record<Bucket, string> = {
+  checking: "Entra no gasto por dia",
+  cash: "Entra no gasto por dia",
+  saved: "Não entra no gasto por dia",
+  invested: "Não entra no gasto por dia",
+};
+
 export interface Account {
   id: string;
   name: string;
   kind: "checking" | "card";
+  bucket: Bucket;
   openingBalance: number;
   creditLimit: number | null;
   closingDay: number | null;
@@ -134,7 +150,18 @@ export interface TodayData {
   events: { today: CalEvent[]; tomorrow: CalEvent[] };
   reminders: { today: Reminder[]; tomorrow: Reminder[] };
   deadlines: (Deadline & { daysLeft: number })[];
-  money: { perDay: number; free: number; payday: string; paydayAssumed: boolean; days: number; hasData: boolean };
+  money: {
+    perDay: number;
+    free: number;
+    payday: string;
+    paydayAssumed: boolean;
+    days: number;
+    hasData: boolean;
+    /** Os quatro baldes, separados. */
+    buckets: Record<Bucket, number>;
+    /** Gastável: corrente + carteira em dinheiro. */
+    spendable: number;
+  };
   house: HouseToday | null;
 }
 export interface Summary {
