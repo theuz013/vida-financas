@@ -160,7 +160,7 @@ export const bills = sqliteTable(
     id: text("id").primaryKey(),
     userId: owner(),
     name: text("name").notNull(),
-    /** Null = valor variável, a confirmar (ex.: Copasa, Cemig). */
+    /** Null = valor variável, a confirmar (ex.: água, luz). */
     amount: integer("amount"),
     dueDate: text("due_date").notNull(),
     recurrence: text("recurrence", { enum: ["none", "monthly", "yearly"] })
@@ -318,7 +318,7 @@ export const notificationLog = sqliteTable(
 
 /* ===================== Casa (vertente familiar) ===================== */
 
-/** A casa do Matheus. Uma casa por usuário nesta fase. */
+/** A casa (vertente familiar). Uma casa por usuário nesta fase. */
 export const households = sqliteTable("households", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -365,6 +365,23 @@ export const householdInvites = sqliteTable(
   (t) => [index("household_invites_house").on(t.householdId)],
 );
 
+/** Lista de compras com nome e data (ex.: "Supermercado", 28/11/2026). */
+export const shoppingLists = sqliteTable(
+  "shopping_lists",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Data da compra (YYYY-MM-DD). */
+    date: text("date").notNull(),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [index("shopping_lists_house").on(t.householdId, t.date)],
+);
+
 export const shoppingItems = sqliteTable(
   "shopping_items",
   {
@@ -377,6 +394,8 @@ export const shoppingItems = sqliteTable(
     checked: integer("checked", { mode: "boolean" }).notNull().default(false),
     addedBy: text("added_by").references(() => user.id, { onDelete: "set null" }),
     checkedBy: text("checked_by").references(() => user.id, { onDelete: "set null" }),
+    /** Lista a que o item pertence (null = itens antigos, sem lista). */
+    listId: text("list_id"),
     ...timestamps,
   },
   (t) => [index("shopping_house").on(t.householdId, t.checked)],

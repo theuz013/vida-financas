@@ -49,7 +49,7 @@ Todo o resto é cinza (`ink`, `ink-2`, `ink-3`, `sunken`, `line`).
 
 ## Componentes
 
-`src/components/ui.tsx`: Button (primary / secondary / ghost / danger), Card, Section, Row e List (linhas com divisória), Chip (tons de estado), Money (números tabulares), Field, Input, MoneyInput (teclado decimal, aceita "67,54"), Segmented, Sheet (folha que sobe do rodapé no celular e vira janela no computador), Empty, Skeleton.
+`src/components/ui.tsx`: Button (primary / secondary / ghost / danger), Card, Section, Row e List (linhas com divisória), Chip (tons de estado), Money (números tabulares), Field, Input, MoneyInput (teclado decimal, aceita "67,54"), Segmented, Sheet (folha que sobe do rodapé no celular e vira janela no computador; aceita uma faixa `tabs` fixa acima do conteúdo; trava a página de trás), Empty, Skeleton.
 
 Ícones: Lucide, traço 2. Emoji só nas categorias, que a especificação pede.
 
@@ -62,6 +62,8 @@ Prioridade do dono: o celular vem antes. Tudo é desenhado para o iPhone (a part
 - Toda ação tem estado de pressionado (`active:`), porque `hover:` não existe no toque.
 - Folhas sobem do rodapé, com alça para arrastar e fechar, e sobem junto com o teclado do iPhone (visualViewport) para o botão de salvar continuar visível.
 - Puxar para atualizar no topo da página (o iPhone não oferece isso com o app instalado).
+- Valores em dinheiro com máscara R$ 1.000,00 (`MoneyInput` / `maskBRL`).
+- Menus de seção (Vida e Casa) usam `SectionTabs`: no celular ficam fixos no topo depois de passar da posição natural, sem depender de `sticky` (o Safari do iPhone falha nele).
 - Campos com fonte de 16px (o iOS não dá zoom) e teclado certo (`inputMode="decimal"` para dinheiro).
 - Abaixo de 375px, títulos e o cartão principal ficam mais compactos.
 - Conferência: `node scripts/mobile-audit.cjs` (nada vazando e nenhum alvo menor que 44px) e `node scripts/ui-gestures.cjs`.

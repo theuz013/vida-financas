@@ -17,7 +17,7 @@ export const DEFAULT_CATEGORIES: { name: string; emoji: string; kind: "expense" 
   { name: "Outras receitas", emoji: "➕", kind: "income" },
 ];
 
-export const DEFAULT_AREAS = ["Casa", "VZT", "LEVVA", "Carros", "Pessoal"];
+export const DEFAULT_AREAS = ["Casa", "Trabalho", "Carro", "Pessoal"];
 
 /** Dados que todo usuário novo recebe: categorias, áreas, carteira e configurações. */
 export async function seedDefaults(db: DB, userId: string, timezone: string) {
@@ -35,41 +35,6 @@ export async function seedDefaults(db: DB, userId: string, timezone: string) {
     kind: "checking",
     openingBalance: 0,
   });
-}
-
-/**
- * Dados reais do dono (primeiro usuário): contas recorrentes e lembretes de leitura.
- * Valores conforme a especificação; Copasa e Cemig ficam com valor a confirmar.
- */
-export async function seedOwner(db: DB, userId: string, timezone: string) {
-  const today = todayIn(timezone);
-  const cats = await db.query.categories.findMany({ where: (c, { eq }) => eq(c.userId, userId) });
-  const contas = cats.find((c) => c.name === "Contas da casa")?.id ?? null;
-  const areas = await db.query.areas.findMany({ where: (a, { eq }) => eq(a.userId, userId) });
-  const casa = areas.find((a) => a.name === "Casa")?.id ?? null;
-
-  const bill = (name: string, amount: number | null, day: number) => ({
-    id: id(),
-    userId,
-    name,
-    amount,
-    dueDate: nextMonthlyOccurrence(day, today),
-    recurrence: "monthly" as const,
-    categoryId: contas,
-  });
-  await db.insert(schema.bills).values([
-    bill("Nio Fibra", 6754, 26),
-    bill("Metha Energia", 6803, 27),
-    // valores variam; vencimento a confirmar com o Matheus
-    bill("Copasa", null, 20),
-    bill("Cemig", null, 15),
-  ]);
-
-  await db.insert(schema.reminders).values([
-    { id: id(), userId, title: "Leitura do medidor Copasa", dayOfMonth: 17, areaId: casa },
-    { id: id(), userId, title: "Leitura do medidor Copasa (outro endereço)", dayOfMonth: 13, areaId: casa },
-    { id: id(), userId, title: "Aviso Cemig", dayOfMonth: 10, areaId: casa },
-  ]);
 }
 
 /** Dados de exemplo para o modo demonstração (revisores das lojas). */
@@ -117,8 +82,8 @@ export async function seedDemo(db: DB, userId: string, timezone: string) {
     { id: id(), userId, name: "Seguro do carro", amount: 21_000, dueDate: d(-2), recurrence: "monthly", categoryId: cat("Carro") },
   ]);
   await db.insert(schema.tasks).values([
-    { id: id(), userId, title: "Levar o carro para revisão", areaId: area("Carros"), dueDate: today, priority: "high" },
-    { id: id(), userId, title: "Enviar proposta", areaId: area("VZT"), dueDate: d(2) },
+    { id: id(), userId, title: "Levar o carro para revisão", areaId: area("Carro"), dueDate: today, priority: "high" },
+    { id: id(), userId, title: "Enviar proposta", areaId: area("Trabalho"), dueDate: d(2) },
     { id: id(), userId, title: "Trocar lâmpada da garagem", areaId: area("Casa"), dueDate: d(-1), priority: "low" },
   ]);
   await db.insert(schema.events).values([
@@ -127,7 +92,7 @@ export async function seedDemo(db: DB, userId: string, timezone: string) {
   ]);
   const dayToday = Number(today.slice(8, 10));
   await db.insert(schema.reminders).values([
-    { id: id(), userId, title: "Leitura do medidor de água", dayOfMonth: dayToday, areaId: area("Casa") },
+    { id: id(), userId, title: "Ler o medidor de água", dayOfMonth: dayToday, areaId: area("Casa") },
   ]);
   await db.insert(schema.deadlines).values([
     { id: id(), userId, title: "CNH vence", date: d(25), alertDaysBefore: 30, areaId: area("Pessoal") },

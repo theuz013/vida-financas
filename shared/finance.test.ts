@@ -157,9 +157,9 @@ describe("gasto por dia até o próximo salário", () => {
   it("desconta contas e faturas que vencem antes do salário", () => {
     const txs = [tx({ accountId: "c", amount: 20_000, date: "2026-11-20" })]; // fatura fecha 03/12, vence 10/12
     const bills = [
-      bill({ name: "Nio Fibra", amount: 6754, dueDate: "2026-11-26" }), // vencida, ainda conta
-      bill({ name: "Metha", amount: 6803, dueDate: "2026-11-27" }),
-      bill({ name: "Copasa", amount: null, dueDate: "2026-12-05" }),
+      bill({ name: "Internet", amount: 6754, dueDate: "2026-11-26" }), // vencida, ainda conta
+      bill({ name: "Energia", amount: 6803, dueDate: "2026-11-27" }),
+      bill({ name: "Água", amount: null, dueDate: "2026-12-05" }),
       bill({ name: "Depois do salário", amount: 99_999, dueDate: "2026-12-20" }),
       bill({ name: "Já paga", amount: 50_000, status: "paid" }),
     ];

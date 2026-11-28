@@ -74,7 +74,7 @@ export function Layout() {
           {me?.isDemo ? <p className="mt-auto px-3 text-[12.5px] text-ink-3">Modo demonstração: dados de exemplo, apagados em 24h.</p> : null}
         </aside>
 
-        <main className="mx-auto w-full max-w-3xl px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-32 md:px-8 md:pt-10 md:pb-16">
+        <main className="mx-auto w-full max-w-3xl overflow-x-clip px-4 pt-[max(env(safe-area-inset-top),1rem)] pb-32 md:px-8 md:pt-10 md:pb-16">
           {me?.isDemo ? (
             <p className="mb-3 rounded-xl bg-warn-soft px-3.5 py-1.5 text-[13px] font-medium text-warn md:hidden">Modo demonstração: dados de exemplo.</p>
           ) : null}

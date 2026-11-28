@@ -426,52 +426,118 @@ household.delete("/household/events/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-/* ===================== Lista de compras ===================== */
+/* ===================== Listas de compras (com data) ===================== */
 
-household.get("/household/shopping", async (c) => {
-  const { db, userId } = c.var;
-  const me = await requireMember(db, userId);
-  const rows = await db.query.shoppingItems.findMany({
-    where: (s, { eq }) => eq(s.householdId, me.householdId),
-    orderBy: (s) => [asc(s.checked), desc(s.createdAt)],
-  });
-  const names = await memberNames(db, me.householdId);
-  return c.json(rows.map((s) => ({ ...s, addedByName: s.addedBy ? (names.get(s.addedBy) ?? null) : null })));
+const listInput = z.object({
+  name: z.string().trim().min(1).max(60),
+  date: zDate,
 });
 
-household.post("/household/shopping", async (c) => {
+async function houseList(db: DB, householdId: string, listId: string) {
+  const l = await db.query.shoppingLists.findFirst({ where: (x, { and, eq }) => and(eq(x.id, listId), eq(x.householdId, householdId)) });
+  if (!l) bad("Lista não encontrada.", 404);
+  return l;
+}
+
+/** Listas da casa, da mais recente para a mais antiga, com quantos itens faltam. */
+household.get("/household/shopping-lists", async (c) => {
+  const { db, userId } = c.var;
+  const me = await requireMember(db, userId);
+  const lists = await db.query.shoppingLists.findMany({
+    where: (x, { eq }) => eq(x.householdId, me.householdId),
+    orderBy: (x) => [desc(x.date), desc(x.createdAt)],
+  });
+  const items = await db.query.shoppingItems.findMany({ where: (x, { eq }) => eq(x.householdId, me.householdId) });
+  return c.json(
+    lists.map((l) => {
+      const mine = items.filter((i) => i.listId === l.id);
+      return { ...l, total: mine.length, open: mine.filter((i) => !i.checked).length };
+    }),
+  );
+});
+
+household.post("/household/shopping-lists", async (c) => {
   const { db, userId } = c.var;
   const me = await requirePermission(db, userId, "shopping");
+  const input = await body(c, listInput);
+  const row = { id: id(), householdId: me.householdId, name: input.name, date: input.date, createdBy: userId };
+  await db.insert(schema.shoppingLists).values(row);
+  return c.json(row, 201);
+});
+
+/** Uma lista com os itens dentro (os que faltam primeiro). */
+household.get("/household/shopping-lists/:id", async (c) => {
+  const { db, userId } = c.var;
+  const me = await requireMember(db, userId);
+  const list = await houseList(db, me.householdId, c.req.param("id"));
+  const items = await db.query.shoppingItems.findMany({
+    where: (x, { and, eq }) => and(eq(x.householdId, me.householdId), eq(x.listId, list.id)),
+    orderBy: (x) => [asc(x.checked), asc(x.createdAt)],
+  });
+  const names = await memberNames(db, me.householdId);
+  return c.json({
+    ...list,
+    items: items.map((i) => ({ ...i, addedByName: i.addedBy ? (names.get(i.addedBy) ?? null) : null })),
+    canEdit: can(me, "shopping"),
+  });
+});
+
+household.patch("/household/shopping-lists/:id", async (c) => {
+  const { db, userId } = c.var;
+  const me = await requirePermission(db, userId, "shopping");
+  const list = await houseList(db, me.householdId, c.req.param("id"));
+  const input = await body(c, listInput.partial());
+  await db.update(schema.shoppingLists).set({ ...input, updatedAt: Date.now() }).where(eq(schema.shoppingLists.id, list.id));
+  return c.json({ ok: true });
+});
+
+household.delete("/household/shopping-lists/:id", async (c) => {
+  const { db, userId } = c.var;
+  const me = await requirePermission(db, userId, "shopping");
+  const list = await houseList(db, me.householdId, c.req.param("id"));
+  await db.delete(schema.shoppingItems).where(eq(schema.shoppingItems.listId, list.id));
+  await db.delete(schema.shoppingLists).where(eq(schema.shoppingLists.id, list.id));
+  return c.json({ ok: true });
+});
+
+/** Adiciona um item dentro da lista. */
+household.post("/household/shopping-lists/:id/items", async (c) => {
+  const { db, userId } = c.var;
+  const me = await requirePermission(db, userId, "shopping");
+  const list = await houseList(db, me.householdId, c.req.param("id"));
   const input = await body(c, z.object({ name: z.string().trim().min(1).max(80), quantity: z.string().trim().max(30).nullable().optional() }));
-  const row = { id: id(), householdId: me.householdId, name: input.name, quantity: input.quantity || null, addedBy: userId };
+  const row = { id: id(), householdId: me.householdId, listId: list.id, name: input.name, quantity: input.quantity || null, addedBy: userId, checked: false };
   await db.insert(schema.shoppingItems).values(row);
   return c.json(row, 201);
 });
 
-household.patch("/household/shopping/:id", async (c) => {
+household.patch("/household/shopping-lists/:id/items/:itemId", async (c) => {
   const { db, userId } = c.var;
   const me = await requirePermission(db, userId, "shopping");
+  const list = await houseList(db, me.householdId, c.req.param("id"));
   const input = await body(c, z.object({ name: z.string().trim().min(1).max(80).optional(), quantity: z.string().trim().max(30).nullable().optional(), checked: z.boolean().optional() }));
   const patch: Record<string, unknown> = { ...input, updatedAt: Date.now() };
   if ("checked" in input) patch.checkedBy = input.checked ? userId : null;
   await db
     .update(schema.shoppingItems)
     .set(patch)
-    .where(and(eq(schema.shoppingItems.id, c.req.param("id")), eq(schema.shoppingItems.householdId, me.householdId)));
+    .where(and(eq(schema.shoppingItems.id, c.req.param("itemId")), eq(schema.shoppingItems.listId, list.id)));
   return c.json({ ok: true });
 });
 
-household.delete("/household/shopping/:id", async (c) => {
+household.delete("/household/shopping-lists/:id/items/:itemId", async (c) => {
   const { db, userId } = c.var;
   const me = await requirePermission(db, userId, "shopping");
-  await db.delete(schema.shoppingItems).where(and(eq(schema.shoppingItems.id, c.req.param("id")), eq(schema.shoppingItems.householdId, me.householdId)));
+  const list = await houseList(db, me.householdId, c.req.param("id"));
+  await db.delete(schema.shoppingItems).where(and(eq(schema.shoppingItems.id, c.req.param("itemId")), eq(schema.shoppingItems.listId, list.id)));
   return c.json({ ok: true });
 });
 
-/** Limpar os itens já comprados. */
-household.post("/household/shopping/clear", async (c) => {
+/** Tira do carrinho os itens já comprados. */
+household.post("/household/shopping-lists/:id/clear", async (c) => {
   const { db, userId } = c.var;
   const me = await requirePermission(db, userId, "shopping");
-  await db.delete(schema.shoppingItems).where(and(eq(schema.shoppingItems.householdId, me.householdId), eq(schema.shoppingItems.checked, true)));
+  const list = await houseList(db, me.householdId, c.req.param("id"));
+  await db.delete(schema.shoppingItems).where(and(eq(schema.shoppingItems.listId, list.id), eq(schema.shoppingItems.checked, true)));
   return c.json({ ok: true });
 });

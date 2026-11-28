@@ -14,7 +14,7 @@ Escolhida com o dono: React 19 + TypeScript + Vite (SPA/PWA) servida por um Clou
 
 ## Users
 
-Um usuário no MVP: o Matheus, que se diz muito desorganizado e quer um lugar só para controlar a vida e as finanças. Usa principalmente no iPhone, ao longo do dia, para registrar um gasto na hora ou ver o que tem para hoje; no computador para revisar o mês. O assistente pessoal dele (Pelúcio, no WhatsApp) também grava registros pela API.
+Um usuário no MVP: o dono do app, que se diz muito desorganizado e quer um lugar só para controlar a vida e as finanças. Usa principalmente no iPhone, ao longo do dia, para registrar um gasto na hora ou ver o que tem para hoje; no computador para revisar o mês. O assistente pessoal dele (Pelúcio, no WhatsApp) também grava registros pela API.
 
 O app nasce pronto para vários usuários (lojas), mas o cadastro fica fechado até o dono decidir abrir.
 
@@ -39,8 +39,8 @@ Organizador manual próprio com o conjunto de recursos do PingDin (contas, cart�
 - Registro rápido em poucos toques, muitas vezes em pé, no celular, logo depois de pagar.
 - O assistente recebe "comprei X" ou "conta de Y amanhã" no WhatsApp e grava pela API com chave.
 - Salário variável, sem data fixa: ele informa a data do próximo recebimento e o app conta até lá.
-- Frentes da vida: Casa, VZT, LEVVA, Carros, Pessoal.
-- Contas reais recorrentes: Nio Fibra (R$ 67,54, dia 26), Metha Energia (R$ 68,03, dia 27), Copasa e Cemig (valores variam). Leituras do medidor Copasa nos dias 17 e 13 (dois endereços) e aviso Cemig no dia 10.
+- Frentes da vida (padrão genérico, editáveis): Casa, Trabalho, Carro, Pessoal.
+- Contas recorrentes e lembretes ficam por conta de cada pessoa: nenhum dado pessoal vem pronto no app.
 - Avisos por notificação push: resumo do dia às 08h, véspera de lembretes, compromissos com antecedência.
 
 ## Capabilities and Constraints
@@ -50,7 +50,6 @@ Organizador manual próprio com o conjunto de recursos do PingDin (contas, cart�
 - Dinheiro em centavos; datas no fuso America/Sao_Paulo.
 - Exigências das lojas já atendidas no MVP: exclusão de conta, exportação dos dados, política de privacidade, modo demonstração com dados de exemplo.
 - Fora do MVP: captura automática por notificação do banco, importação de PDF, planilha sincronizada, multiusuário/família, metas e relatórios avançados.
-- Em aberto: data de leitura da Copasa/Cemig e vencimentos exatos (seed provisório: Copasa dia 20, Cemig dia 15, valor a confirmar).
 
 ## Brand Commitments
 

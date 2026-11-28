@@ -114,9 +114,12 @@
 
 /* folha que sobe do rodapé no celular; janela central no computador */
 dialog.sheet {
-  margin: auto auto 0;
-  width: 100%;
-  max-width: 34rem;
+  /* posição fixa colada no rodapé: não se desloca de lado nem para cima/baixo */
+  position: fixed;
+  inset: auto 0 0 0;
+  margin: 0 auto;
+  width: min(100%, 34rem);
+  max-width: 100%;
   max-height: 92dvh;
   border-radius: 20px 20px 0 0;
   background: var(--color-surface);
@@ -143,15 +146,19 @@ dialog.sheet:not([open]) {
 }
 @media (min-width: 768px) {
   dialog.sheet {
-    margin: auto;
+    inset: 50% auto auto 50%;
+    translate: -50% -50%;
+    max-height: 88dvh;
     border-radius: 16px;
   }
   dialog.sheet:not([open]) {
-    translate: 0 16px;
+    translate: -50% calc(-50% + 16px);
+    opacity: 0;
   }
   @starting-style {
     dialog.sheet[open] {
-      translate: 0 16px;
+      translate: -50% calc(-50% + 16px);
+      opacity: 0;
     }
   }
 }

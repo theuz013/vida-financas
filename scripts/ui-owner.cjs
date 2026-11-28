@@ -6,7 +6,7 @@ const { chromium, devices } = require("playwright");
   const ok = (l, v) => console.log((v ? "✔ " : "✘ ") + l);
   await p.goto("http://localhost:5173/entrar");
   await p.getByRole("button", { name: "Criar conta" }).click();
-  await p.getByLabel("Como posso chamar você?").fill("Matheus");
+  await p.getByLabel("Como posso chamar você?").fill("Dono");
   await p.getByLabel("E-mail").fill("dono@example.com");
   await p.getByLabel("Senha").fill("senha-forte-123");
   await p.getByRole("button", { name: "Criar conta" }).click();
@@ -16,13 +16,13 @@ const { chromium, devices } = require("playwright");
   // saldo da carteira e cartão
   await p.goto("http://localhost:5173/financas"); await p.waitForLoadState("networkidle");
   await p.getByRole("button", { name: "Novo cartão" }).click();
-  await p.getByLabel("Nome").fill("Nubank"); await p.getByLabel("Limite total").fill("5000");
+  await p.getByLabel("Nome").fill("Nubank"); await p.getByLabel("Limite total").fill("500000");
   await p.getByLabel("Dia do fechamento").fill("3"); await p.getByLabel("Dia do vencimento").fill("10");
   await p.getByRole("button", { name: "Salvar" }).click(); await p.waitForTimeout(700);
   ok("cartão cadastrado", await p.getByText("Nubank").first().isVisible());
   // compra já parcelada (parcela 3 de 10)
   await p.getByRole("button", { name: "Registrar" }).last().click();
-  await p.getByLabel("Valor").fill("1000");
+  await p.getByLabel("Valor").fill("100000");
   await p.getByLabel("Pago com").selectOption({ label: "Nubank (crédito)" });
   await p.getByLabel("Parcelas").selectOption("10");
   await p.getByLabel("Parcela atual").selectOption("3");
@@ -33,7 +33,7 @@ const { chromium, devices } = require("playwright");
   ok("compra antiga só lança as 8 parcelas que faltam (R$ 800 usados)", avail.includes("4.200,00"));
   // desfazer gasto
   await p.getByRole("button", { name: "Registrar" }).last().click();
-  await p.getByLabel("Valor").fill("33"); await p.getByLabel("Descrição").fill("Teste desfazer");
+  await p.getByLabel("Valor").fill("3300"); await p.getByLabel("Descrição").fill("Teste desfazer");
   await p.getByRole("button", { name: "Registrar gasto" }).click(); await p.waitForTimeout(500);
   await p.getByRole("button", { name: "Desfazer" }).click(); await p.waitForTimeout(800);
   await p.goto("http://localhost:5173/financas/lancamentos"); await p.waitForLoadState("networkidle");
@@ -47,13 +47,16 @@ const { chromium, devices } = require("playwright");
   await p.goto("http://localhost:5173/financas"); await p.waitForLoadState("networkidle");
   await p.getByRole("link", { name: /Carteira/ }).click(); await p.waitForURL(/\/financas\/conta\//); await p.waitForLoadState("networkidle");
   ok("detalhe da conta abre", await p.getByRole("heading", { name: "Carteira" }).waitFor({ timeout: 5000 }).then(() => true, () => false));
-  // pagar e desfazer conta (seed Nio Fibra)
+  // pagar e desfazer conta (criada no teste)
   await p.goto("http://localhost:5173/financas/contas"); await p.waitForLoadState("networkidle");
-  await p.getByRole("button", { name: /Nio Fibra/ }).click();
+  await p.getByRole("button", { name: "Nova conta a pagar" }).click();
+  await p.getByLabel("Nome").fill("Internet"); await p.getByLabel("Valor").fill("67,54");
+  await p.getByRole("button", { name: "Salvar" }).click(); await p.waitForTimeout(700);
+  await p.getByRole("button", { name: /Internet/ }).click();
   await p.getByRole("button", { name: "Pagar", exact: true }).click();
   await p.getByRole("button", { name: "Marcar como paga" }).click(); await p.waitForTimeout(600);
   await p.getByRole("button", { name: "Desfazer" }).click(); await p.waitForTimeout(800);
-  ok("desfazer pagamento volta para a pagar (uma só Nio Fibra)", (await p.getByRole("button", { name: /Nio Fibra/ }).count()) === 1);
+  ok("desfazer pagamento volta para a pagar (uma só Internet)", (await p.getByRole("button", { name: /Internet/ }).count()) === 1);
   // tarefa: tocar abre edição
   await p.goto("http://localhost:5173/vida"); await p.waitForLoadState("networkidle");
   await p.getByRole("button", { name: "Nova tarefa" }).click();

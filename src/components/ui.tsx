@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { Link } from "react-router";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { formatBRL } from "@/lib/format";
 
 export function cx(...c: (string | false | null | undefined)[]) {
@@ -216,7 +216,16 @@ export function Select({ className, children, ...rest }: SelectHTMLAttributes<HT
   );
 }
 
-/** Campo de dinheiro: teclado numérico, aceita "67,54". */
+/** Máscara de moeda: só dígitos entram; o último dígito são centavos (1000 → 10,00 → 1.000,00). */
+export function maskBRL(raw: string): string {
+  const digits = raw.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 12);
+  if (!digits) return "";
+  const cents = digits.padStart(3, "0");
+  const int = cents.slice(0, -2).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${int},${cents.slice(-2)}`;
+}
+
+/** Campo de dinheiro com máscara R$ 1.000,00 (teclado numérico). */
 export function MoneyInput({ value, onChange, autoFocus, large, ...rest }: { value: string; onChange: (v: string) => void; autoFocus?: boolean; large?: boolean } & Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
   return (
     <div className={cx("flex items-center gap-2 rounded-xl border border-line bg-surface px-3.5 focus-within:border-ink-2", large ? "h-16" : "h-12")}>
@@ -228,7 +237,7 @@ export function MoneyInput({ value, onChange, autoFocus, large, ...rest }: { val
         placeholder="0,00"
         autoFocus={autoFocus}
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^\d.,]/g, ""))}
+        onChange={(e) => onChange(maskBRL(e.target.value))}
         className={cx("num min-w-0 flex-1 bg-transparent outline-none", large ? "text-[30px] font-bold tracking-[-0.02em]" : "text-[16px]")}
       />
     </div>
@@ -265,7 +274,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
  * No celular: alça para arrastar e fechar, e sobe junto com o teclado do iPhone
  * para o botão de salvar continuar visível.
  */
-export function Sheet({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode }) {
+export function Sheet({ open, onClose, title, children, footer, tabs }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; tabs?: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   const drag = useRef<{ y: number; dy: number } | null>(null);
   const [dy, setDy] = useState(0);
@@ -277,6 +286,23 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
     setDy(0);
+  }, [open]);
+
+  // trava a página de trás enquanto a folha está aberta (no iPhone o fundo rola junto)
+  useEffect(() => {
+    if (!open) return;
+    const y = window.scrollY;
+    const { style } = document.body;
+    const prev = { position: style.position, top: style.top, width: style.width };
+    style.position = "fixed";
+    style.top = `-${y}px`;
+    style.width = "100%";
+    return () => {
+      style.position = prev.position;
+      style.top = prev.top;
+      style.width = prev.width;
+      window.scrollTo(0, y);
+    };
   }, [open]);
 
   // teclado do iOS: o visualViewport encolhe; levanta a folha pela diferença
@@ -339,7 +365,8 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
               </IconButton>
             </div>
           </div>
-          <div className="overscroll-contain overflow-y-auto px-5 pt-2 pb-4">{children}</div>
+          {tabs ? <div className="shrink-0 border-b border-line bg-surface px-5 pt-2 pb-3">{tabs}</div> : null}
+          <div className="overscroll-contain overflow-y-auto px-5 pt-3 pb-4">{children}</div>
           {footer ? <div className={cx("border-t border-line px-5 pt-3", keyboard ? "pb-3" : "safe-bottom")}>{footer}</div> : <div className={keyboard ? "pb-3" : "safe-bottom"} />}
         </div>
       ) : null}
@@ -350,4 +377,72 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
 /** Confirmação curta antes de algo que não dá para desfazer. */
 export function useConfirm() {
   return (message: string) => window.confirm(message);
+}
+
+/**
+ * Menu de seções (Contas, Tarefas, Agenda...). No celular, ele rola junto com a página
+ * até chegar no topo e então fica fixo, só rolando de lado. Não usa `sticky`, porque o
+ * Safari do iPhone move o sticky ao puxar a página. No computador é um menu comum.
+ */
+export function SectionTabs({ label, children }: { label: string; children: ReactNode }) {
+  const holder = useRef<HTMLDivElement>(null);
+  const bar = useRef<HTMLElement>(null);
+  const [pinned, setPinned] = useState(false);
+  const [h, setH] = useState(0);
+
+  useLayoutEffect(() => {
+    const measure = () => bar.current && setH(bar.current.offsetHeight + 20);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const isMobile = window.innerWidth < 768;
+      const top = holder.current?.getBoundingClientRect().top ?? 1;
+      setPinned(isMobile && top <= 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  return (
+    <>
+      {/* ocupa o espaço do menu quando ele está fixo, para a página não pular */}
+      <div ref={holder} aria-hidden style={{ height: pinned ? h : 0 }} />
+      <nav
+        ref={bar}
+        aria-label={label}
+        className={cx(
+          "z-10 flex gap-1.5 overflow-x-auto overscroll-x-contain bg-bg px-4 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
+          pinned ? "fixed inset-x-0 top-[env(safe-area-inset-top)]" : "-mx-4 mb-5 md:mx-0 md:px-0",
+        )}
+      >
+        {children}
+      </nav>
+    </>
+  );
+}
+
+/** Bloco que abre e fecha (título clicável). `open` controla de fora, se precisar. */
+export function Collapse({ title, subtitle, open, onToggle, children, id }: { title: string; subtitle?: ReactNode; open: boolean; onToggle: () => void; children: ReactNode; id?: string }) {
+  return (
+    <Card as="div" className="overflow-hidden">
+      <div id={id} className="scroll-mt-28" />
+      <button type="button" aria-expanded={open} onClick={onToggle} className="flex min-h-14 w-full items-center gap-3 px-4 py-3.5 text-left active:bg-sunken">
+        <span className="min-w-0 flex-1">
+          <span className="block text-[16px] font-bold tracking-[-0.01em]">{title}</span>
+          {subtitle ? <span className="block text-[13px] text-ink-2">{subtitle}</span> : null}
+        </span>
+        <ChevronDown className={cx("size-5 shrink-0 text-ink-3 transition-transform duration-200", open && "rotate-180")} aria-hidden />
+      </button>
+      {open ? <div className="border-t border-line px-4 pt-4 pb-4">{children}</div> : null}
+    </Card>
+  );
 }

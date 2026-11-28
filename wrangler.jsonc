@@ -4,7 +4,7 @@
   // Conta Cloudflare PRÓPRIA deste app, separada de qualquer outro projeto (ex.: avantclinic).
   // Preencha com o Account ID da conta nova (painel da Cloudflare → Workers & Pages → Account ID).
   // Com o id fixo aqui, o deploy nunca cai em outra conta, mesmo que o wrangler esteja logado em várias.
-  // "account_id": "COLOQUE_AQUI_O_ACCOUNT_ID_DA_CONTA_NOVA",
+  "account_id": "500998df99884b0a5d4b9768f1a32fc3",
   "main": "worker/index.ts",
   "compatibility_date": "2026-11-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -16,8 +16,7 @@
     {
       "binding": "DB",
       "database_name": "vida-financas-db",
-      // Troque pelo id real depois de `wrangler d1 create vida-financas-db`
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "902f56ea-6ea4-43f4-a2fa-b43367fec331",
       "migrations_dir": "migrations"
     }
   ],
@@ -29,7 +28,7 @@
     "ALLOW_SIGNUP": "false",
     // "true" libera o botão "Entrar no modo demonstração" (revisão da Apple/Google)
     "DEMO_ENABLED": "true",
-    "VAPID_SUBJECT": "mailto:contato@example.com"
+    "VAPID_SUBJECT": "https://vida-financas.vida-financas.workers.dev"
   },
   "observability": { "enabled": true }
 }

@@ -283,7 +283,7 @@ function BillSheet({ value, onClose, onPay }: { value: Bill | "new" | null; onCl
     >
       <div className="space-y-4">
         <Field label="Nome">
-          <Input autoFocus={!bill} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Nio Fibra" />
+          <Input autoFocus={!bill} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: internet" />
         </Field>
         <Field label="Valor" hint="Deixe em branco se o valor muda todo mês (água, luz).">
           <MoneyInput value={amount} onChange={setAmount} />

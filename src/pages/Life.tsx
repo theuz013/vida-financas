@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { SectionTabs } from "@/components/ui";
 import { NavLink, Outlet } from "react-router";
 import { Clock, Hourglass, Plus, Repeat } from "lucide-react";
 import { nextMonthlyOccurrence } from "@shared/dates";
@@ -20,20 +21,20 @@ export function LifeLayout() {
   return (
     <div>
       <PageHeader title="Vida" />
-      <nav className="-mx-4 mb-5 flex gap-1.5 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0" aria-label="Seções">
+      <SectionTabs label="Seções">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
             to={t.to}
             end={t.end}
             className={({ isActive }) =>
-              cx("hit h-10 shrink-0 rounded-full px-4 text-[14px] leading-10 font-semibold transition-colors", isActive ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink")
+              cx("hit h-10 shrink-0 snap-start rounded-full px-4 text-[14px] leading-10 font-semibold transition-colors", isActive ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink")
             }
           >
             {t.label}
           </NavLink>
         ))}
-      </nav>
+      </SectionTabs>
       <Outlet />
     </div>
   );
@@ -84,7 +85,7 @@ export function TasksPage() {
   return (
     <div>
       <div className="mb-4 hidden justify-end md:flex"><AddButton onClick={() => quickAdd({ mode: "task" })}>Nova tarefa</AddButton></div>
-      {open.length === 0 ? <Empty title="Nenhuma tarefa aberta." hint="Anote o que precisa fazer e em qual frente: casa, VZT, LEVVA, carros ou pessoal." /> : null}
+      {open.length === 0 ? <Empty title="Nenhuma tarefa aberta." hint="Anote o que precisa fazer e em qual frente: casa, trabalho, carro ou pessoal." /> : null}
       {groups.map(([title, list]) =>
         list.length ? (
           <Section key={title} title={title}>
@@ -250,7 +251,7 @@ function EventSheet({ value, onClose }: { value: CalEvent | "new" | null; onClos
       }
     >
       <div className="space-y-4">
-        <Field label="O quê"><Input autoFocus={!ev} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: reunião com a LEVVA" /></Field>
+        <Field label="O quê"><Input autoFocus={!ev} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: reunião com o cliente" /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Dia"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
           <Field label="Hora"><Input type="time" value={time} onChange={(e) => setTime(e.target.value)} /></Field>
@@ -286,7 +287,7 @@ export function RemindersPage() {
   return (
     <div>
       <div className="mb-4 hidden justify-end md:flex"><AddButton onClick={() => setEditing("new")}>Novo lembrete</AddButton></div>
-      {sorted.length === 0 ? <Empty title="Nenhum lembrete recorrente." hint='Regras do tipo "todo dia 17: leitura do medidor". O app avisa na véspera e no dia.' /> : (
+      {sorted.length === 0 ? <Empty title="Nenhum lembrete recorrente." hint='Regras do tipo "todo dia 17: pagar a conta". O app avisa na véspera e no dia.' /> : (
         <List>
           {sorted.map((r) => {
             const next = nextMonthlyOccurrence(r.dayOfMonth, today);
@@ -341,7 +342,7 @@ function ReminderSheet({ value, onClose }: { value: Reminder | "new" | null; onC
       }
     >
       <div className="space-y-4">
-        <Field label="Lembrar de"><Input autoFocus={!r} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: leitura do medidor Copasa" /></Field>
+        <Field label="Lembrar de"><Input autoFocus={!r} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: ler o medidor de água" /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Todo dia" hint="Dia 31 cai no último dia dos meses curtos.">
             <Input inputMode="numeric" value={day} onChange={(e) => setDay(e.target.value.replace(/\D/g, "").slice(0, 2))} placeholder="17" />

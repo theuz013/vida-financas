@@ -39,7 +39,7 @@ npm run db:migrate:local
 npm run dev
 ```
 
-O primeiro cadastro vira o dono e já recebe os dados iniciais: categorias, frentes (Casa, VZT, LEVVA, Carros, Pessoal), carteira, as contas Nio Fibra, Metha, Copasa e Cemig e os lembretes de leitura. Depois disso o cadastro fecha (`ALLOW_SIGNUP=false` em `wrangler.jsonc`).
+Cada cadastro começa só com o genérico: categorias, frentes (Casa, Trabalho, Carro, Pessoal) e a carteira. Nenhum dado pessoal vem pronto; o que for cadastrado fica só na conta de quem cadastrou.
 
 ### Testes
 
@@ -77,7 +77,7 @@ node scripts/icons.mjs
 
 ## Publicar na Cloudflare (gratuito)
 
-Este app usa uma **conta Cloudflare própria**, separada de qualquer outro projeto (avantclinic incluído). Nada dele é criado numa conta já usada por outro sistema.
+Este app usa uma **conta Cloudflare própria**, separada de qualquer outro projeto (de outro sistema, incluído). Nada dele é criado numa conta já usada por outro sistema.
 
 1. Crie a conta nova na Cloudflare (gratuita). Se o wrangler já estiver logado em outra conta nesta máquina, saia primeiro:
 
@@ -183,6 +183,7 @@ Aba **Casa**. O primeiro a criar a casa vira administrador e gera um **código d
 - **Papéis:** administrador (tudo) e membro. A casa sempre tem pelo menos um administrador: não dá para rebaixar ou tirar o último, e ele passa o papel antes de sair.
 - **Permissões por membro** (o administrador liga e desliga): ver e editar as finanças da casa, criar tarefas e compromissos, mexer na lista de compras. Todo membro vê as tarefas e compromissos da casa e faz as próprias tarefas. Criança fica sem finanças.
 - **Contas da casa:** com vencimento, recorrência e **quem pagou**. Quem pagou pode lançar o gasto também nas próprias finanças.
+- **Compras:** listas com nome e data (ex.: Supermercado, sábado). Abra a lista, digite o item e toque em **Adicionar à lista**; quem marca um item no carrinho aparece para todos.
 - **Tarefas da casa** com responsável (a pessoa recebe push), **agenda** com lembrete para todos e **lista de compras** compartilhada.
 - **Saída:** quem sai ou é removido perde o acesso na hora; os dados da casa ficam para os outros (os registros que ele criou passam para um administrador).
 - Uma casa por usuário. Sem WhatsApp para a família: avisos por push e na tela Hoje.

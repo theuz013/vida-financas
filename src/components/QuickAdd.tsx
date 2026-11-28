@@ -134,6 +134,27 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
       open={open}
       onClose={onClose}
       title={title}
+      tabs={
+        !edit ? (
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="radiogroup" aria-label="Tipo">
+            {modes.map((m) => (
+              <button
+                key={m.value}
+                type="button"
+                role="radio"
+                aria-checked={mode === m.value}
+                onClick={() => { setMode(m.value); setCategoryId(null); }}
+                className={cx(
+                  "hit h-10 shrink-0 rounded-full px-4 text-[14px] font-semibold transition-colors active:opacity-80",
+                  mode === m.value ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink",
+                )}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        ) : null
+      }
       footer={
         <div className="flex gap-2">
           {edit ? (
@@ -154,25 +175,6 @@ export function QuickAdd({ preset, onClose }: { preset: QuickAddPreset | null; o
           submit();
         }}
       >
-        {!edit ? (
-          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-0.5" role="radiogroup" aria-label="Tipo">
-            {modes.map((m) => (
-              <button
-                key={m.value}
-                type="button"
-                role="radio"
-                aria-checked={mode === m.value}
-                onClick={() => { setMode(m.value); setCategoryId(null); }}
-                className={cx(
-                  "h-10 shrink-0 rounded-full px-4 text-[14px] font-semibold transition-colors",
-                  mode === m.value ? "bg-accent text-on-accent" : "bg-sunken text-ink-2 hover:text-ink",
-                )}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         {mode === "task" ? (
           <>
