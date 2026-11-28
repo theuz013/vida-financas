@@ -44,6 +44,18 @@ const { chromium, devices } = require("playwright");
   console.log("   valor exibido:", shown);
   await p.getByRole("button", { name: "Fechar" }).tap();
 
+  // janela de registro: a faixa de tipos (Gasto, Receita...) não rola com o formulário
+  await p.goto(B + "/"); await p.waitForLoadState("networkidle");
+  await p.getByRole("button", { name: "Registrar" }).last().tap(); await p.waitForTimeout(500);
+  const radio = p.locator('[role="radiogroup"][aria-label="Tipo"]');
+  const t1 = await radio.evaluate((n) => Math.round(n.getBoundingClientRect().top));
+  await p.locator("dialog[open] .overflow-y-auto").first().evaluate((n) => { n.scrollTop = 300; });
+  await p.waitForTimeout(200);
+  const t2 = await radio.evaluate((n) => Math.round(n.getBoundingClientRect().top));
+  ok("registro: faixa de tipos fica fixa ao rolar o formulário", Math.abs(t1 - t2) <= 1);
+  console.log("   faixa de tipos:", t1, "→", t2);
+  await p.getByRole("button", { name: "Fechar" }).tap(); await p.waitForTimeout(300);
+
   console.log("erros:", JSON.stringify(errors));
   await b.close();
 })();

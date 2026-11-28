@@ -274,7 +274,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
  * No celular: alça para arrastar e fechar, e sobe junto com o teclado do iPhone
  * para o botão de salvar continuar visível.
  */
-export function Sheet({ open, onClose, title, children, footer }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode }) {
+export function Sheet({ open, onClose, title, children, footer, tabs }: { open: boolean; onClose: () => void; title: string; children: ReactNode; footer?: ReactNode; tabs?: ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   const drag = useRef<{ y: number; dy: number } | null>(null);
   const [dy, setDy] = useState(0);
@@ -286,6 +286,23 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
     setDy(0);
+  }, [open]);
+
+  // trava a página de trás enquanto a folha está aberta (no iPhone o fundo rola junto)
+  useEffect(() => {
+    if (!open) return;
+    const y = window.scrollY;
+    const { style } = document.body;
+    const prev = { position: style.position, top: style.top, width: style.width };
+    style.position = "fixed";
+    style.top = `-${y}px`;
+    style.width = "100%";
+    return () => {
+      style.position = prev.position;
+      style.top = prev.top;
+      style.width = prev.width;
+      window.scrollTo(0, y);
+    };
   }, [open]);
 
   // teclado do iOS: o visualViewport encolhe; levanta a folha pela diferença
@@ -348,7 +365,8 @@ export function Sheet({ open, onClose, title, children, footer }: { open: boolea
               </IconButton>
             </div>
           </div>
-          <div className="overscroll-contain overflow-y-auto px-5 pt-2 pb-4">{children}</div>
+          {tabs ? <div className="shrink-0 border-b border-line bg-surface px-5 pt-2 pb-3">{tabs}</div> : null}
+          <div className="overscroll-contain overflow-y-auto px-5 pt-3 pb-4">{children}</div>
           {footer ? <div className={cx("border-t border-line px-5 pt-3", keyboard ? "pb-3" : "safe-bottom")}>{footer}</div> : <div className={keyboard ? "pb-3" : "safe-bottom"} />}
         </div>
       ) : null}

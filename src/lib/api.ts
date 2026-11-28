@@ -261,4 +261,17 @@ export const useHouseSummary = (enabled = true) =>
   useQuery({ queryKey: ["household", "summary"], queryFn: () => api<HouseSummary>("/household/bills/summary"), enabled });
 export const useHouseTasks = () => useQuery({ queryKey: ["household", "tasks"], queryFn: () => api<HouseTask[]>("/household/tasks") });
 export const useHouseEvents = () => useQuery({ queryKey: ["household", "events"], queryFn: () => api<CalEvent[]>("/household/events") });
-export const useShopping = () => useQuery({ queryKey: ["household", "shopping"], queryFn: () => api<ShoppingItem[]>("/household/shopping") });
+export interface ShoppingList {
+  id: string;
+  name: string;
+  date: string;
+  total: number;
+  open: number;
+}
+export interface ShoppingListDetail extends Omit<ShoppingList, "total" | "open"> {
+  items: ShoppingItem[];
+  canEdit: boolean;
+}
+export const useShoppingLists = () => useQuery({ queryKey: ["household", "shopping-lists"], queryFn: () => api<ShoppingList[]>("/household/shopping-lists") });
+export const useShoppingList = (id: string) =>
+  useQuery({ queryKey: ["household", "shopping-lists", id], queryFn: () => api<ShoppingListDetail>(`/household/shopping-lists/${id}`) });

@@ -365,6 +365,23 @@ export const householdInvites = sqliteTable(
   (t) => [index("household_invites_house").on(t.householdId)],
 );
 
+/** Lista de compras com nome e data (ex.: "Supermercado", 28/11/2026). */
+export const shoppingLists = sqliteTable(
+  "shopping_lists",
+  {
+    id: text("id").primaryKey(),
+    householdId: text("household_id")
+      .notNull()
+      .references(() => households.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Data da compra (YYYY-MM-DD). */
+    date: text("date").notNull(),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    ...timestamps,
+  },
+  (t) => [index("shopping_lists_house").on(t.householdId, t.date)],
+);
+
 export const shoppingItems = sqliteTable(
   "shopping_items",
   {
@@ -377,6 +394,8 @@ export const shoppingItems = sqliteTable(
     checked: integer("checked", { mode: "boolean" }).notNull().default(false),
     addedBy: text("added_by").references(() => user.id, { onDelete: "set null" }),
     checkedBy: text("checked_by").references(() => user.id, { onDelete: "set null" }),
+    /** Lista a que o item pertence (null = itens antigos, sem lista). */
+    listId: text("list_id"),
     ...timestamps,
   },
   (t) => [index("shopping_house").on(t.householdId, t.checked)],

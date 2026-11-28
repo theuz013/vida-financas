@@ -183,6 +183,7 @@ Aba **Casa**. O primeiro a criar a casa vira administrador e gera um **código d
 - **Papéis:** administrador (tudo) e membro. A casa sempre tem pelo menos um administrador: não dá para rebaixar ou tirar o último, e ele passa o papel antes de sair.
 - **Permissões por membro** (o administrador liga e desliga): ver e editar as finanças da casa, criar tarefas e compromissos, mexer na lista de compras. Todo membro vê as tarefas e compromissos da casa e faz as próprias tarefas. Criança fica sem finanças.
 - **Contas da casa:** com vencimento, recorrência e **quem pagou**. Quem pagou pode lançar o gasto também nas próprias finanças.
+- **Compras:** listas com nome e data (ex.: Supermercado, sábado). Abra a lista, digite o item e toque em **Adicionar à lista**; quem marca um item no carrinho aparece para todos.
 - **Tarefas da casa** com responsável (a pessoa recebe push), **agenda** com lembrete para todos e **lista de compras** compartilhada.
 - **Saída:** quem sai ou é removido perde o acesso na hora; os dados da casa ficam para os outros (os registros que ele criou passam para um administrador).
 - Uma casa por usuário. Sem WhatsApp para a família: avisos por push e na tela Hoje.

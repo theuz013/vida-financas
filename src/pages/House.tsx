@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { SectionTabs } from "@/components/ui";
-import { Navigate, NavLink, Outlet, useNavigate, useOutletContext } from "react-router";
-import { Check, Clock, Copy, Repeat, Share2, ShieldCheck, UserRound } from "lucide-react";
+import { Navigate, NavLink, Outlet, useNavigate, useOutletContext, useParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, Clock, Copy, Plus, Repeat, Share2, ShieldCheck, ShoppingCart, UserRound } from "lucide-react";
 import {
   api,
   useAccounts,
@@ -11,7 +12,9 @@ import {
   useHouseEvents,
   useHouseSummary,
   useHouseTasks,
-  useShopping,
+  useShoppingList,
+  useShoppingLists,
+  type ShoppingList,
   type CalEvent,
   type HouseBill,
   type HouseData,
@@ -519,64 +522,212 @@ function HouseEventSheet({ value, onClose }: { value: CalEvent | "new" | null; o
   );
 }
 
-/* ===================== Lista de compras ===================== */
+/* ===================== Listas de compras (com data) ===================== */
 
+const weekdayDate = (d: string) => {
+  const [y, m, day] = d.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "short" }).format(new Date(Date.UTC(y, m - 1, day, 12)));
+};
+
+/** Lista das compras da casa: cada lista tem nome e data; tocar abre a lista com os itens. */
 export function HouseShoppingPage() {
   const { me } = useHouseCtx();
-  const { data: items, isLoading } = useShopping();
+  const { data: lists, isLoading } = useShoppingLists();
+  const [creating, setCreating] = useState(false);
+  const today = localToday();
+  const can = me.permissions.shopping;
+  usePlusAction(can ? "Nova lista de compras" : null, () => setCreating(true));
+  const sorted = [...(lists ?? [])];
+  const upcoming = sorted.filter((l) => l.date >= today);
+  const past = sorted.filter((l) => l.date < today);
+
+  return (
+    <div>
+      {can ? <div className="mb-4 hidden justify-end md:flex"><Button size="sm" variant="secondary" onClick={() => setCreating(true)}>Nova lista</Button></div> : (
+        <p className="mb-5 rounded-xl bg-sunken px-3.5 py-2.5 text-[14px] text-ink-2">Você pode ver as listas. Para criar e marcar itens, peça permissão ao administrador.</p>
+      )}
+      {can ? (
+        <Button size="lg" className="mb-6 w-full" onClick={() => setCreating(true)}>
+          <Plus className="size-5" aria-hidden /> Nova lista de compras
+        </Button>
+      ) : null}
+      {isLoading ? <Skeleton className="h-40" /> : sorted.length === 0 ? (
+        <Empty title="Nenhuma lista de compras." hint="Crie uma lista com nome e data (ex.: Supermercado, sábado) e vá colocando os itens dentro dela." />
+      ) : (
+        <>
+          {upcoming.length ? <Section title="Próximas"><ListCards lists={upcoming} /></Section> : null}
+          {past.length ? <Section title="Anteriores"><ListCards lists={past} /></Section> : null}
+        </>
+      )}
+      <NewListSheet open={creating} onClose={() => setCreating(false)} />
+    </div>
+  );
+}
+
+function ListCards({ lists }: { lists: ShoppingList[] }) {
+  return (
+    <List>
+      {lists.map((l) => (
+        <Row
+          key={l.id}
+          to={`/casa/compras/${l.id}`}
+          leading={<IconBubble><ShoppingCart /></IconBubble>}
+          title={l.name}
+          subtitle={`${weekdayDate(l.date)} · ${l.total === 0 ? "vazia" : l.open === 0 ? "tudo no carrinho" : `${l.open} ${l.open === 1 ? "item" : "itens"} para comprar`}`}
+        />
+      ))}
+    </List>
+  );
+}
+
+function NewListSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [name, setName] = useState("Supermercado");
+  const [date, setDate] = useState(localToday());
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (open) {
+      setName("Supermercado");
+      setDate(localToday());
+    }
+  }, [open]);
+  const create = useAction(() => api<{ id: string }>("/household/shopping-lists", { body: { name: name.trim(), date } }));
+  return (
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title="Nova lista de compras"
+      footer={
+        <Button
+          size="lg"
+          loading={create.isPending}
+          disabled={!name.trim() || !date}
+          onClick={() => create.mutate(undefined, { onSuccess: (l) => { onClose(); navigate(`/casa/compras/${l.id}`); } })}
+        >
+          Criar lista
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <Field label="Nome da lista">
+          <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Supermercado" />
+        </Field>
+        <Field label="Data da compra">
+          <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </Field>
+        <ErrorNote error={create.error} />
+      </div>
+    </Sheet>
+  );
+}
+
+/** Uma lista aberta: itens dentro, campo e botão "Adicionar" visíveis. */
+export function HouseShoppingListPage() {
+  const { listId = "" } = useParams();
+  const { me } = useHouseCtx();
+  const { data: list, isLoading } = useShoppingList(listId);
   const [name, setName] = useState("");
   const [qty, setQty] = useState("");
   const input = useRef<HTMLInputElement>(null);
   const can = me.permissions.shopping;
-  usePlusAction(can ? "Adicionar à lista" : null, () => input.current?.focus());
-  const add = useAction(() => api("/household/shopping", { body: { name: name.trim(), quantity: qty.trim() || null } }));
-  const toggle = useAction(({ id, checked }: { id: string; checked: boolean }) => api(`/household/shopping/${id}`, { method: "PATCH", body: { checked } }));
-  const remove = useAction((id: string) => api(`/household/shopping/${id}`, { method: "DELETE" }));
-  const clear = useAction(() => api("/household/shopping/clear", { body: {} }));
-  const pending = (items ?? []).filter((i) => !i.checked);
-  const inCart = (items ?? []).filter((i) => i.checked);
+  const [editing, setEditing] = useState(false);
+  const navigate = useNavigate();
+  usePlusAction(can ? "Adicionar item" : null, () => input.current?.focus());
+
+  const refresh = () => qc.invalidateQueries({ queryKey: ["household", "shopping-lists"] });
+  const qc = useQueryClient();
+  const add = useAction(() => api(`/household/shopping-lists/${listId}/items`, { body: { name: name.trim(), quantity: qty.trim() || null } }));
+  const toggle = useAction(({ id, checked }: { id: string; checked: boolean }) => api(`/household/shopping-lists/${listId}/items/${id}`, { method: "PATCH", body: { checked } }));
+  const remove = useAction((id: string) => api(`/household/shopping-lists/${listId}/items/${id}`, { method: "DELETE" }));
+  const clear = useAction(() => api(`/household/shopping-lists/${listId}/clear`, { body: {} }));
+  const drop = useAction(() => api(`/household/shopping-lists/${listId}`, { method: "DELETE" }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    add.mutate(undefined, { onSuccess: () => { setName(""); setQty(""); input.current?.focus(); } });
+    if (!name.trim() || !can) return;
+    add.mutate(undefined, { onSuccess: () => { setName(""); setQty(""); input.current?.focus(); refresh(); } });
   };
+
+  if (isLoading || !list) return <Skeleton className="h-60" />;
+  const open = list.items.filter((i) => !i.checked);
+  const done = list.items.filter((i) => i.checked);
 
   return (
     <div>
+      <PageHeader
+        title={list.name}
+        subtitle={weekdayDate(list.date)}
+        back="/casa/compras"
+        action={can ? <button type="button" onClick={() => setEditing(true)} className="-my-3 inline-flex h-11 items-center px-2 text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">Editar</button> : undefined}
+      />
+
       {can ? (
-        <form onSubmit={submit} className="mb-5 grid grid-cols-[1fr_5.5rem] gap-2">
-          <Input ref={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Adicionar item" aria-label="Item" enterKeyHint="done" />
-          <Input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qtd." aria-label="Quantidade" />
-          <div className="col-span-2"><ErrorNote error={add.error} /></div>
-          <button type="submit" hidden />
+        <form onSubmit={submit} className="mb-6 space-y-2.5">
+          <div className="grid grid-cols-[1fr_5.5rem] gap-2">
+            <Input ref={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Item (ex.: leite)" aria-label="Item" enterKeyHint="done" />
+            <Input value={qty} onChange={(e) => setQty(e.target.value)} placeholder="Qtd." aria-label="Quantidade" />
+          </div>
+          <Button type="submit" size="lg" className="w-full" loading={add.isPending} disabled={!name.trim()}>
+            <Plus className="size-5" aria-hidden /> Adicionar à lista
+          </Button>
+          <ErrorNote error={add.error} />
         </form>
       ) : (
-        <p className="mb-5 rounded-xl bg-sunken px-3.5 py-2.5 text-[14px] text-ink-2">Você pode ver a lista. Para adicionar e marcar itens, peça permissão ao administrador.</p>
+        <p className="mb-6 rounded-xl bg-sunken px-3.5 py-2.5 text-[14px] text-ink-2">Você pode ver esta lista. Para adicionar e marcar itens, peça permissão ao administrador.</p>
       )}
-      {isLoading ? <Skeleton className="h-40" /> : pending.length === 0 && inCart.length === 0 ? (
-        <Empty title="Lista de compras vazia." hint="O que alguém da casa adicionar aparece aqui para todos." />
+
+      {list.items.length === 0 ? (
+        <Empty title="Lista vazia." hint="Digite um item acima e toque em Adicionar à lista." />
       ) : (
         <>
-          {pending.length ? (
+          {open.length ? (
             <List>
-              {pending.map((i) => (
-                <ShopRow key={i.id} name={i.name} qty={i.quantity} by={i.addedByName} checked={false} disabled={!can} onToggle={() => toggle.mutate({ id: i.id, checked: true })} onRemove={can ? () => remove.mutate(i.id) : undefined} />
+              {open.map((i) => (
+                <ShopRow key={i.id} name={i.name} qty={i.quantity} by={i.addedByName} checked={false} disabled={!can} onToggle={() => toggle.mutate({ id: i.id, checked: true }, { onSuccess: refresh })} onRemove={can ? () => remove.mutate(i.id, { onSuccess: refresh }) : undefined} />
               ))}
             </List>
-          ) : <Empty title="Tudo no carrinho." />}
-          {inCart.length ? (
-            <Section title="No carrinho" action={can ? <button type="button" onClick={() => clear.mutate()} className="-my-3 inline-flex h-11 items-center text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">Limpar</button> : undefined}>
+          ) : <p className="px-1 text-[14px] text-ink-2">Tudo no carrinho.</p>}
+          {done.length ? (
+            <Section title="No carrinho" action={can ? <button type="button" onClick={() => clear.mutate(undefined, { onSuccess: refresh })} className="-my-3 inline-flex h-11 items-center text-[14px] font-semibold text-ink-2 hover:text-ink active:text-ink">Tirar todos</button> : undefined}>
               <List>
-                {inCart.map((i) => (
-                  <ShopRow key={i.id} name={i.name} qty={i.quantity} checked disabled={!can} onToggle={() => toggle.mutate({ id: i.id, checked: false })} />
+                {done.map((i) => (
+                  <ShopRow key={i.id} name={i.name} qty={i.quantity} checked disabled={!can} onToggle={() => toggle.mutate({ id: i.id, checked: false }, { onSuccess: refresh })} />
                 ))}
               </List>
             </Section>
           ) : null}
         </>
       )}
+
+      {can ? (
+        <div className="mt-10">
+          <Button variant="danger" className="w-full" loading={drop.isPending} onClick={() => window.confirm("Apagar esta lista e os itens dela?") && drop.mutate(undefined, { onSuccess: () => navigate("/casa/compras") })}>
+            Apagar lista
+          </Button>
+        </div>
+      ) : null}
+      <ListEditSheet open={editing} listId={listId} name={list.name} date={list.date} onClose={() => { setEditing(false); refresh(); qc.invalidateQueries({ queryKey: ["household", "shopping-lists", listId] }); }} />
     </div>
+  );
+}
+
+function ListEditSheet({ open, listId, name: initialName, date: initialDate, onClose }: { open: boolean; listId: string; name: string; date: string; onClose: () => void }) {
+  const [name, setName] = useState(initialName);
+  const [date, setDate] = useState(initialDate);
+  useEffect(() => {
+    if (open) {
+      setName(initialName);
+      setDate(initialDate);
+    }
+  }, [open, initialName, initialDate]);
+  const save = useAction(() => api(`/household/shopping-lists/${listId}`, { method: "PATCH", body: { name: name.trim(), date } }));
+  return (
+    <Sheet open={open} onClose={onClose} title="Editar lista" footer={<Button size="lg" loading={save.isPending} onClick={() => save.mutate(undefined, { onSuccess: onClose })}>Salvar</Button>}>
+      <div className="space-y-4">
+        <Field label="Nome da lista"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+        <Field label="Data da compra"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+        <ErrorNote error={save.error} />
+      </div>
+    </Sheet>
   );
 }
 
